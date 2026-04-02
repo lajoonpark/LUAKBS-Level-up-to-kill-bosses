@@ -58,6 +58,7 @@
 
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
     <div id="race-display" style="margin-top:6px">🧬 Race: <span id="race-name">Human</span></div>
+    <button id="btn-reroll-race" class="btn btn-reroll-race" style="margin-top:6px">🎲 Reroll Race</button>
 
     <div id="combat-stats-section">
       <div id="combat-stats-header">
@@ -99,6 +100,35 @@
       </div>
       <div id="stats-info-body"></div>
     </div>
+  </div>
+
+  <!-- ── Race Reroll Modal ── -->
+  <div id="reroll-modal">
+    <div id="reroll-modal-content">
+      <div id="reroll-modal-header">
+        <h3>🎲 Race Reroll</h3>
+        <button id="btn-close-reroll-modal" title="Close">✕</button>
+      </div>
+      <div id="reroll-current-race">
+        <div class="reroll-label">Current Race</div>
+        <div id="reroll-race-name" class="reroll-race-name"></div>
+        <div id="reroll-race-bonuses" class="reroll-race-bonuses"></div>
+      </div>
+      <div id="reroll-races-index">
+        <div class="reroll-label">Available Races</div>
+        <div id="reroll-races-list"></div>
+      </div>
+      <div id="reroll-item-count" class="reroll-item-count"></div>
+      <div id="reroll-confirm" class="reroll-confirm" style="display:none">
+        <span>Are you sure you want to reroll your race?</span>
+        <div class="reroll-confirm-btns">
+          <button id="btn-confirm-reroll" class="btn btn-reroll-confirm">✔ Yes, Reroll!</button>
+          <button id="btn-cancel-reroll" class="btn btn-reroll-cancel">✕ Cancel</button>
+        </div>
+      </div>
+      <button id="btn-do-reroll" class="btn btn-do-reroll">🎲 Reroll Race</button>
+    </div>
+  </div>
   </div>
 
   <!-- ── Enemy Selection Panel (full width) ── -->
@@ -336,8 +366,9 @@ function buildWeaponShop() {
   list.innerHTML = '';
   const allWeapons = [...WEAPONS, ...player.craftedWeapons];
   allWeapons.forEach((w) => {
+    const isCrafted = player.craftedWeapons.includes(w) || WEAPONS.includes(w);
     const card = document.createElement('div');
-    card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '');
+    card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '') + (!isCrafted ? ' weapon-locked' : '');
     const craftedBadge = player.craftedWeapons.includes(w)
       ? `<div class="crafted-badge">crafted</div>` : '';
     card.innerHTML =
@@ -346,9 +377,15 @@ function buildWeaponShop() {
       `<div>${w.name}</div>` +
       `<div style="color:#888;font-size:0.78rem">${w.baseDamage} base dmg</div>`;
     card.addEventListener('click', () => {
-      player.equipWeapon(w);
-      buildWeaponShop();
-      refreshPlayerUI();
+      const ok = player.equipWeapon(w);
+      if (ok) {
+        buildWeaponShop();
+        refreshPlayerUI();
+      } else {
+        // Flash the card to indicate the block
+        card.classList.add('equip-blocked');
+        setTimeout(() => card.classList.remove('equip-blocked'), 600);
+      }
     });
     list.appendChild(card);
   });
@@ -493,6 +530,11 @@ function endFight() {
 
   // Item drops
   player.rollItemDrops(currentEnemy);
+
+  // Race Reroll drop – base 5%, +0.1% per luck point
+  if (Math.random() < getRerollDropChance(player.stats.luck)) {
+    player.addItemToInventory('Race Reroll', 1);
+  }
 
   onGameLog(`🏆 ${currentEnemy.name} defeated!`);
   elTimingResult.textContent = '🏆 Victory!';
@@ -643,7 +685,7 @@ function updateStatsDisplay() {
 }
 
 const STAT_DESCRIPTIONS = [
-  { name: '💪 Strength',  desc: 'Increases base attack damage. Each point adds +2 to Total Damage.' },
+  { name: '💪 Strength',  desc: 'Increases base attack damage. Each point adds +1.5 to Total Damage.' },
   { name: '❤ Vitality',  desc: 'Increases maximum HP. Each point adds +10 Max HP.' },
   { name: '🎯 Dexterity', desc: 'Increases critical hit chance. Each point adds +1% Crit Chance.' },
   { name: '🍀 Luck',      desc: 'Increases item drop rates and gem drop chances.' },
@@ -675,6 +717,105 @@ function toggleStatsInfoPanel() {
 
 document.getElementById('btn-stats-info').addEventListener('click', toggleStatsInfoPanel);
 document.getElementById('btn-close-stats-info').addEventListener('click', toggleStatsInfoPanel);
+
+// ── Race Reroll Menu ─────────────────────────────────────────
+function openRerollMenu() {
+  const modal = document.getElementById('reroll-modal');
+
+  // Populate current race info
+  const raceData = RACES[player.race];
+  document.getElementById('reroll-race-name').textContent = player.race;
+  document.getElementById('reroll-race-bonuses').textContent =
+    `DMG ×${raceData.damageMultiplier.toFixed(2)}  |  HP ×${raceData.healthMultiplier.toFixed(2)}`;
+
+  // Populate races index
+  const racesList = document.getElementById('reroll-races-list');
+  racesList.innerHTML = '';
+  for (const [name, data] of Object.entries(RACES)) {
+    const div = document.createElement('div');
+    div.className = 'reroll-race-entry' + (name === player.race ? ' reroll-race-current' : '');
+    div.innerHTML =
+      `<span class="reroll-race-entry-name">${name}</span>` +
+      `<span class="reroll-race-entry-stats">DMG ×${data.damageMultiplier.toFixed(2)} | HP ×${data.healthMultiplier.toFixed(2)}</span>`;
+    racesList.appendChild(div);
+  }
+
+  // Show item count
+  const qty = player.inventory['Race Reroll'] || 0;
+  document.getElementById('reroll-item-count').textContent =
+    qty > 0 ? `🎲 Race Rerolls: ${qty}` : '❌ No Race Reroll items!';
+
+  // Reset confirm state
+  document.getElementById('reroll-confirm').style.display = 'none';
+  document.getElementById('btn-do-reroll').style.display  = '';
+  document.getElementById('btn-do-reroll').disabled = qty <= 0;
+
+  modal.classList.add('open');
+}
+
+function closeRerollMenu() {
+  document.getElementById('reroll-modal').classList.remove('open');
+}
+
+function triggerRerollAnimation() {
+  const raceNameEl = document.getElementById('race-name');
+  const rerollNameEl = document.getElementById('reroll-race-name');
+  raceNameEl.classList.remove('race-reroll-anim');
+  rerollNameEl.classList.remove('race-reroll-anim');
+  void raceNameEl.offsetWidth;
+  void rerollNameEl.offsetWidth;
+  raceNameEl.classList.add('race-reroll-anim');
+  rerollNameEl.classList.add('race-reroll-anim');
+}
+
+function useRaceRerollFromMenu() {
+  const ok = player.useRaceReroll();
+  if (!ok) return;
+
+  triggerRerollAnimation();
+
+  // Refresh modal content with new race
+  const raceData = RACES[player.race];
+  document.getElementById('reroll-race-name').textContent = player.race;
+  document.getElementById('reroll-race-bonuses').textContent =
+    `DMG ×${raceData.damageMultiplier.toFixed(2)}  |  HP ×${raceData.healthMultiplier.toFixed(2)}`;
+
+  const qty = player.inventory['Race Reroll'] || 0;
+  document.getElementById('reroll-item-count').textContent =
+    qty > 0 ? `🎲 Race Rerolls: ${qty}` : '❌ No Race Reroll items!';
+
+  document.getElementById('reroll-confirm').style.display = 'none';
+  document.getElementById('btn-do-reroll').style.display  = '';
+  document.getElementById('btn-do-reroll').disabled = qty <= 0;
+
+  // Refresh races index to highlight new current race
+  const racesList = document.getElementById('reroll-races-list');
+  racesList.querySelectorAll('.reroll-race-entry').forEach(entry => {
+    entry.classList.toggle('reroll-race-current',
+      entry.querySelector('.reroll-race-entry-name').textContent === player.race);
+  });
+
+  refreshPlayerUI();
+  updateStatsDisplay();
+}
+
+// Reroll menu button events
+document.getElementById('btn-reroll-race').addEventListener('click', openRerollMenu);
+document.getElementById('btn-close-reroll-modal').addEventListener('click', closeRerollMenu);
+document.getElementById('reroll-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('reroll-modal')) closeRerollMenu();
+});
+document.getElementById('btn-do-reroll').addEventListener('click', () => {
+  document.getElementById('reroll-confirm').style.display = 'flex';
+  document.getElementById('btn-do-reroll').style.display  = 'none';
+});
+document.getElementById('btn-confirm-reroll').addEventListener('click', () => {
+  useRaceRerollFromMenu();
+});
+document.getElementById('btn-cancel-reroll').addEventListener('click', () => {
+  document.getElementById('reroll-confirm').style.display = 'none';
+  document.getElementById('btn-do-reroll').style.display  = '';
+});
 
 // ── Boot ─────────────────────────────────────────────────────
 buildWeaponShop();

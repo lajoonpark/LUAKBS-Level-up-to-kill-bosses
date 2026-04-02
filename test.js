@@ -83,10 +83,16 @@ assert(w.baseDamage === 25,      'weapon base damage correct');
 assert(w.rarity === 'rare',      'weapon rarity correct');
 
 const p5 = new Player();
-p5.race = 'Human'; // neutral multiplier so baseDamage = weapon + strength*2
+p5.race = 'Human'; // neutral multiplier so baseDamage = weapon + strength*1.5
+p5.craftedWeapons.push(w); // mark as crafted so it can be equipped
 p5.equipWeapon(w);
 assert(p5.weapon === w,          'weapon equip works');
-assert(p5.baseDamage() === 25 + p5.stats.strength * 2, 'baseDamage uses weapon + strength*2');
+assert(p5.baseDamage() === Math.floor(25 + p5.stats.strength * 1.5), 'baseDamage uses weapon + strength*1.5');
+
+// Equipping an uncrafted weapon that is not in WEAPONS array should be blocked
+const uncrafted = new Weapon('Uncrafted Blade', 30, 'common');
+const equipBlocked = p5.equipWeapon(uncrafted);
+assert(equipBlocked === false, 'cannot equip a weapon that has not been crafted');
 
 // ─────────────────────────────────────────────
 //  Enemy
@@ -215,8 +221,8 @@ assert(failCraft === null,                                     'craftItem return
 // Damage formula uses crafted weapon
 pc.equipWeapon(crafted);
 pc.race = 'Human'; // neutral multiplier
-assert(pc.baseDamage() === crafted.baseDamage + pc.stats.strength * 2,
-  'damage = weaponDamage + strength*2 for crafted weapon');
+assert(pc.baseDamage() === Math.floor(crafted.baseDamage + pc.stats.strength * 1.5),
+  'damage = floor(weaponDamage + strength*1.5) for crafted weapon');
 
 // ─────────────────────────────────────────────
 //  TimingBar (requires manual override of perf)
@@ -413,7 +419,7 @@ assert(pr_hp.maxHp === Math.floor(pr_hp.stats.vitality * 10 * 0.9), 'Elf maxHp =
 section('Player – baseDamage applies damageMultiplier');
 const pr_dmg = new Player();
 pr_dmg.race = 'Elf'; // damageMultiplier 1.3
-const rawDmg = pr_dmg.weapon.baseDamage + pr_dmg.stats.strength * 2;
+const rawDmg = pr_dmg.weapon.baseDamage + pr_dmg.stats.strength * 1.5;
 assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.3),   'Elf baseDamage = floor(raw * 1.3)');
 pr_dmg.race = 'Dwarf'; // damageMultiplier 0.9
 assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 0.9),   'Dwarf baseDamage = floor(raw * 0.9)');

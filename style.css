@@ -645,3 +645,203 @@ h1 {
   #crafting-panel { grid-column: 1; }
   #log-panel      { grid-column: 1; }
 }
+
+/* ── Reroll Race button (in stats panel) ── */
+.btn-reroll-race {
+  background: linear-gradient(135deg, #4a2060, #7a30a0);
+  color: #eeccff;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  border: 1px solid #8844cc;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-reroll-race:hover { background: linear-gradient(135deg, #5a3070, #8a40b0); }
+
+/* ── Race Reroll Modal ── */
+#reroll-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.70);
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+#reroll-modal.open { display: flex; }
+
+#reroll-modal-content {
+  background: #14142a;
+  border: 1px solid #7733bb;
+  border-radius: 12px;
+  padding: 20px 22px;
+  max-width: 380px;
+  width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#reroll-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #2e2e5e;
+  padding-bottom: 10px;
+}
+#reroll-modal-header h3 {
+  font-size: 1.05rem;
+  color: #cc88ff;
+  letter-spacing: 1px;
+}
+
+#btn-close-reroll-modal {
+  background: transparent;
+  border: 1px solid #4a4a8a;
+  color: #aaa;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+#btn-close-reroll-modal:hover { background: #2a2a5a; color: #fff; }
+
+#reroll-current-race {
+  background: #1e1e3e;
+  border: 1px solid #4433aa;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.reroll-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.reroll-race-name {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ee99ff;
+  margin-bottom: 4px;
+  transition: color 0.2s;
+}
+
+.reroll-race-bonuses {
+  font-size: 0.8rem;
+  color: #a0c0ff;
+}
+
+#reroll-races-index {
+  background: #1a1a30;
+  border: 1px solid #2e2e5e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.reroll-race-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #ccc;
+}
+.reroll-race-entry.reroll-race-current {
+  background: #2a1e3e;
+  border: 1px solid #7733bb;
+  color: #ee99ff;
+  font-weight: bold;
+}
+.reroll-race-entry-name { min-width: 60px; }
+.reroll-race-entry-stats { color: #88aacc; font-size: 0.75rem; }
+
+.reroll-item-count {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #cc88ff;
+  font-weight: bold;
+}
+
+.reroll-confirm {
+  flex-direction: column;
+  gap: 10px;
+  background: #1e1a2e;
+  border: 1px solid #7733bb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #ddd;
+}
+.reroll-confirm-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-do-reroll {
+  background: linear-gradient(135deg, #4a2060, #7a30a0);
+  color: #eeccff;
+  width: 100%;
+  padding: 9px;
+  font-size: 0.92rem;
+  border: 1px solid #8844cc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-do-reroll:hover:not(:disabled) { background: linear-gradient(135deg, #5a2a70, #8a40b0); }
+.btn-do-reroll:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-reroll-confirm {
+  background: linear-gradient(135deg, #225522, #33aa33);
+  color: #ccffcc;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.btn-reroll-confirm:hover { background: linear-gradient(135deg, #2a6a2a, #44bb44); }
+
+.btn-reroll-cancel {
+  background: linear-gradient(135deg, #552222, #aa3333);
+  color: #ffcccc;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.btn-reroll-cancel:hover { background: linear-gradient(135deg, #6a2a2a, #bb4444); }
+
+/* ── Race reroll sparkle animation ── */
+@keyframes race-reroll-sparkle {
+  0%   { color: #ffffff; text-shadow: 0 0 6px #cc88ff, 0 0 18px #aa44ff; transform: scale(1.3); }
+  40%  { color: #ffddff; text-shadow: 0 0 10px #ff88ff, 0 0 28px #dd66ff; transform: scale(1.1); }
+  100% { color: #ee99ff; text-shadow: none; transform: scale(1); }
+}
+.race-reroll-anim {
+  animation: race-reroll-sparkle 0.7s ease-out forwards;
+}
+
+/* ── Weapon equip blocked flash ── */
+@keyframes equip-blocked-flash {
+  0%, 100% { border-color: #3a3a7a; background: #1e1e3e; }
+  50%       { border-color: #ff4444; background: #3a1818; }
+}
+.weapon-card.equip-blocked {
+  animation: equip-blocked-flash 0.3s ease-in-out 2;
+}

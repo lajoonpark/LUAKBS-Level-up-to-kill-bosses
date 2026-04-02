@@ -204,9 +204,17 @@ class Player {
   }
 
   // ── Equip a weapon ─────────────────────────────────────────
+  // A weapon can only be equipped if it has been crafted (exists in
+  // craftedWeapons) or is one of the base shop weapons (WEAPONS array).
   equipWeapon(weapon) {
+    const isBaseWeapon = typeof WEAPONS !== 'undefined' && WEAPONS.includes(weapon);
+    if (!isBaseWeapon && !this.craftedWeapons.includes(weapon)) {
+      this._addLog('⚠ You must craft this weapon before equipping it.');
+      return false;
+    }
     this.weapon = weapon;
     this._addLog(`Equipped ${weapon.toString()}`);
+    return true;
   }
 
   // ── Crit chance (0–1) based on dexterity ───────────────────
@@ -216,7 +224,7 @@ class Player {
 
   // ── Base attack damage (with race multiplier) ───────────────
   baseDamage() {
-    return Math.floor((this.weapon.baseDamage + this.stats.strength * 2) * RACES[this.race].damageMultiplier);
+    return Math.floor((this.weapon.baseDamage + this.stats.strength * 1.5) * RACES[this.race].damageMultiplier);
   }
 
   // ── Computed combat stats summary (for the stats display) ──
