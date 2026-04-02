@@ -54,9 +54,39 @@
 
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
 
+    <div id="combat-stats-section">
+      <div id="combat-stats-header">
+        <h3>⚔ Player Stats</h3>
+        <button id="btn-stats-info" title="Stat descriptions">?</button>
+      </div>
+      <div class="cstat-row">
+        <span>Total Damage</span><span id="cstat-damage">—</span>
+      </div>
+      <div class="cstat-row">
+        <span>Crit Chance</span><span id="cstat-crit">—</span>
+      </div>
+      <div class="cstat-row">
+        <span>Max HP</span><span id="cstat-maxhp">—</span>
+      </div>
+      <div class="cstat-row">
+        <span>Luck Bonus</span><span id="cstat-luck">—</span>
+      </div>
+    </div>
+
     <div id="inventory-section">
       <h3>🎒 Inventory</h3>
       <div id="inventory-list"><span class="inv-empty">No items yet</span></div>
+    </div>
+  </div>
+
+  <!-- ── Stats Info Modal ── -->
+  <div id="stats-info-modal">
+    <div id="stats-info-content">
+      <div id="stats-info-header">
+        <h3>📊 Stat Info</h3>
+        <button id="btn-close-stats-info" title="Close">✕</button>
+      </div>
+      <div id="stats-info-body"></div>
     </div>
   </div>
 
@@ -214,6 +244,7 @@ function refreshPlayerUI() {
   timingBar.setSpeedForLevel(player.level);
   displayInventory();
   displayCraftingMenu();
+  updateStatsDisplay();
 }
 
 function refreshEnemyUI() {
@@ -465,6 +496,65 @@ document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
     refreshPlayerUI();
   });
 });
+
+// ── Total stats functions ─────────────────────────────────────
+function calculateTotalStats() {
+  return player.calculateTotalStats();
+}
+
+function updateStatsDisplay() {
+  const s = calculateTotalStats();
+  const fields = {
+    'cstat-damage': s.totalDamage,
+    'cstat-crit'  : s.critChance.toFixed(1) + '%',
+    'cstat-maxhp' : s.maxHp,
+    'cstat-luck'  : '+' + s.luckBonus,
+  };
+  for (const [id, value] of Object.entries(fields)) {
+    const el  = document.getElementById(id);
+    const str = String(value);
+    if (el.textContent !== str) {
+      el.textContent = str;
+      el.classList.remove('stat-bump');
+      void el.offsetWidth; // force reflow to restart animation
+      el.classList.add('stat-bump');
+    }
+  }
+}
+
+const STAT_DESCRIPTIONS = [
+  { name: '💪 Strength',  desc: 'Increases base attack damage. Each point adds +2 to Total Damage.' },
+  { name: '❤ Vitality',  desc: 'Increases maximum HP. Each point adds +10 Max HP.' },
+  { name: '🎯 Dexterity', desc: 'Increases critical hit chance. Each point adds +1% Crit Chance.' },
+  { name: '🍀 Luck',      desc: 'Increases item drop rates and gem drop chances.' },
+];
+
+function renderStatsInfo() {
+  const body = document.getElementById('stats-info-body');
+  body.innerHTML = '';
+  STAT_DESCRIPTIONS.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'stat-info-entry';
+    div.innerHTML =
+      `<div class="stat-info-name">${s.name}</div>` +
+      `<div class="stat-info-desc">${s.desc}</div>`;
+    body.appendChild(div);
+  });
+}
+
+function toggleStatsInfoPanel() {
+  const modal = document.getElementById('stats-info-modal');
+  const visible = modal.classList.contains('open');
+  if (visible) {
+    modal.classList.remove('open');
+  } else {
+    renderStatsInfo();
+    modal.classList.add('open');
+  }
+}
+
+document.getElementById('btn-stats-info').addEventListener('click', toggleStatsInfoPanel);
+document.getElementById('btn-close-stats-info').addEventListener('click', toggleStatsInfoPanel);
 
 // ── Boot ─────────────────────────────────────────────────────
 buildWeaponShop();

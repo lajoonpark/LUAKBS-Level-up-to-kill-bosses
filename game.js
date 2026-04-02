@@ -126,6 +126,16 @@ class Player {
     return this.weapon.baseDamage + this.stats.strength * 2;
   }
 
+  // ── Computed combat stats summary (for the stats display) ──
+  calculateTotalStats() {
+    return {
+      totalDamage : this.baseDamage(),
+      critChance  : this.critChance() * 100,
+      maxHp       : this.stats.vitality * 10,
+      luckBonus   : this.stats.luck,
+    };
+  }
+
   // ── Attack an enemy (returns damage dealt) ─────────────────
   attackEnemy(enemy, timingMultiplier = 1.0) {
     if (timingMultiplier === 0) {
