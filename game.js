@@ -255,7 +255,6 @@ class Player {
     if (this.inventory['Race Reroll'] <= 0) delete this.inventory['Race Reroll'];
     const oldRace = this.race;
     this.race = rollRandomRace();
-    const hpFraction = this.maxHp > 0 ? Math.min(1, this.currentHp / this.maxHp) : 1;
     // Clamp currentHp to new maxHp after race change
     this.currentHp = Math.min(this.currentHp, this.maxHp);
     this._addLog(`🎲 Race changed: ${oldRace} → ${this.race} (DMG ×${RACES[this.race].damageMultiplier}, HP ×${RACES[this.race].healthMultiplier})`);
