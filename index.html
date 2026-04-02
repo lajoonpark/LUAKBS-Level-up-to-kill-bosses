@@ -495,12 +495,20 @@ function endFight() {
   player.rollItemDrops(currentEnemy);
 
   onGameLog(`🏆 ${currentEnemy.name} defeated!`);
-  onGameLog(`Click "Change Enemy" to pick your next fight.`);
   elTimingResult.textContent = '🏆 Victory!';
   elTimingResult.style.color = '#f0c040';
   currentEnemy.reset();
   refreshPlayerUI();
   updateHealthBars();
+
+  // Auto-respawn: re-enable combat after a short delay
+  setTimeout(() => {
+    battleOver = false;
+    elBtnAttack.disabled = false;
+    elTimingResult.textContent = '';
+    onGameLog(`${currentEnemy.name} has respawned! Fight again!`);
+    updateHealthBars();
+  }, 1000);
 }
 
 // ── Combat functions ──────────────────────────────────────────
