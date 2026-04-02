@@ -264,6 +264,106 @@ tb.setSpeedForLevel(10);
 assert(tb.speed === 90, 'speed 90 at level 10');
 
 // ─────────────────────────────────────────────
+//  Health & Regeneration system
+// ─────────────────────────────────────────────
+section('Health – defaults');
+const ph2 = new Player();
+assert(ph2.maxHp === ph2.stats.vitality * 10,  'maxHp = vitality * 10');
+assert(ph2.currentHp === ph2.maxHp,            'starts at full HP');
+assert(ph2.isAlive(),                          'alive at full HP');
+assert(ph2.isRegenerating === false,           'not regenerating on start');
+
+section('Health – maxHp getter updates with vitality');
+const phv = new Player();
+phv.stats.vitality = 10;
+assert(phv.maxHp === 100,                      'maxHp reflects updated vitality');
+
+section('Health – takeDamage');
+const ptd = new Player();
+const startHp = ptd.currentHp;
+ptd.takeDamage(10);
+assert(ptd.currentHp === startHp - 10,        'takeDamage reduces currentHp');
+assert(ptd.timeSinceLastDamage === 0,          'takeDamage resets regen timer');
+assert(ptd.isRegenerating === false,           'takeDamage stops regeneration');
+
+// Cannot go below 0
+ptd.takeDamage(9999);
+assert(ptd.currentHp === 0,                   'currentHp cannot go below 0');
+assert(!ptd.isAlive(),                         'dead at 0 HP');
+
+// No effect once dead
+const hpBeforeDead = ptd.currentHp;
+ptd.takeDamage(5);
+assert(ptd.currentHp === hpBeforeDead,        'takeDamage ignored when already dead');
+
+section('Health – healPlayer');
+const pha = new Player();
+pha.currentHp = 10;
+pha.healPlayer(20);
+assert(pha.currentHp === 30,                   'healPlayer increases currentHp');
+
+// Cannot exceed maxHp
+pha.healPlayer(9999);
+assert(pha.currentHp === pha.maxHp,            'healPlayer clamps to maxHp');
+
+section('Health – updateRegen (no heal before 3 s)');
+const pr2 = new Player();
+pr2.currentHp = 10;
+pr2.timeSinceLastDamage = 0;
+pr2.updateRegen(2.9);
+assert(pr2.isRegenerating === false,           'not regenerating before 3 s delay');
+assert(pr2.currentHp === 10,                   'no heal before 3 s');
+
+section('Health – updateRegen (heals after 3 s)');
+const pr3 = new Player();
+pr3.currentHp = 1;
+pr3.timeSinceLastDamage = 3;  // already past the delay
+pr3.updateRegen(1.0);         // 1 full second → one heal tick
+const expectedHeal = Math.max(1, Math.floor(pr3.maxHp * 0.05));
+assert(pr3.isRegenerating === true,            'isRegenerating true after delay');
+assert(pr3.currentHp === 1 + expectedHeal,     'heals 5 % of maxHp per second');
+
+section('Health – updateRegen (cannot exceed maxHp)');
+const pr4 = new Player();
+pr4.currentHp    = pr4.maxHp - 1;
+pr4.timeSinceLastDamage = 3;
+pr4.updateRegen(1.0);
+assert(pr4.currentHp <= pr4.maxHp,            'regen does not exceed maxHp');
+
+section('Health – updateRegen stops when full');
+const pr5 = new Player();
+pr5.currentHp    = pr5.maxHp;
+pr5.timeSinceLastDamage = 10;
+pr5.updateRegen(1.0);
+assert(pr5.isRegenerating === false,           'regen disabled when already full');
+
+section('Health – takeDamage resets regen mid-heal');
+const pr6 = new Player();
+pr6.currentHp    = 1;
+pr6.timeSinceLastDamage = 5;  // regen active
+pr6.updateRegen(0.5);
+assert(pr6.isRegenerating === true,            'regen active after delay');
+pr6.takeDamage(1);
+assert(pr6.isRegenerating === false,           'regen stops immediately on damage');
+assert(pr6.timeSinceLastDamage === 0,          'regen timer reset on damage');
+assert(pr6.regenAccumulator    === 0,          'regen accumulator reset on damage');
+
+section('Health – level-up restores HP to max');
+const plv = new Player();
+plv.currentHp = 1;
+plv.gainExp(plv.expToNextLevel);  // triggers levelUp
+assert(plv.currentHp === plv.maxHp,            'levelUp restores currentHp to maxHp');
+
+section('Enemy – currentHp alias');
+const eal = new Enemy('TestAlias', 100, 10, 0, 0);
+assert(eal.currentHp === 100,                  'enemy currentHp alias returns hp');
+eal.currentHp = 60;
+assert(eal.hp === 60,                          'setting currentHp updates hp');
+assert(eal.currentHp === 60,                   'getter reflects new value');
+eal.reset();
+assert(eal.currentHp === eal.maxHp,            'enemy currentHp == maxHp after reset');
+
+// ─────────────────────────────────────────────
 //  Summary
 // ─────────────────────────────────────────────
 console.log(`\n════════════════════════════════════════════`);

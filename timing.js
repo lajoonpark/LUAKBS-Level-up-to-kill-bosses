@@ -53,7 +53,7 @@ class TimingBar {
 
     this.updateMarkerPosition(delta);
 
-    if (typeof this.onTick === 'function') this.onTick(this.position);
+    if (typeof this.onTick === 'function') this.onTick(this.position, delta);
 
     requestAnimationFrame((ts) => this._tick(ts));
   }

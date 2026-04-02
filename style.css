@@ -101,7 +101,40 @@ h1 {
   color: #c0a0ff;
 }
 
-/* ── EXP bar ── */
+/* ── Player HP bar ── */
+#player-hp-bar-wrap {
+  background: #1a1a3a;
+  border-radius: 6px;
+  height: 12px;
+  overflow: hidden;
+  margin: 8px 0 4px;
+  border: 1px solid #2e2e5e;
+}
+#player-hp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #226622, #44aa44);
+  transition: width 0.3s ease;
+  width: 100%;
+}
+#player-hp-label { font-size: 0.78rem; color: #8888cc; }
+
+/* ── Regen status ── */
+#regen-status {
+  font-size: 0.78rem;
+  color: #44cc66;
+  min-height: 1.1rem;
+  margin-bottom: 2px;
+}
+
+@keyframes regen-glow {
+  0%, 100% { text-shadow: 0 0 4px #44cc66; }
+  50%       { text-shadow: 0 0 10px #88ffaa; }
+}
+#regen-status:not(:empty) {
+  animation: regen-glow 1.2s ease-in-out infinite;
+}
+
+
 #exp-bar-wrap {
   background: #1a1a3a;
   border-radius: 6px;
