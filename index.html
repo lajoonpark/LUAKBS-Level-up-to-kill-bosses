@@ -24,6 +24,10 @@
     <div id="exp-bar-wrap"><div id="exp-bar"></div></div>
     <div id="exp-label">EXP: 0 / 100</div>
 
+    <div id="player-hp-bar-wrap"><div id="player-hp-bar"></div></div>
+    <div id="player-hp-label">HP: 50 / 50</div>
+    <div id="regen-status"></div>
+
     <div class="stat-row" style="margin-top:10px">
       <span>Strength</span>
       <span id="stat-strength">5</span>
@@ -194,8 +198,12 @@ const elEnemySelectPanel = document.getElementById('enemy-select-panel');
 // ── Timing bar setup ─────────────────────────────────────────
 const timingBar = new TimingBar({ speed: 50 });
 
-timingBar.onTick = (pos) => {
+timingBar.onTick = (pos, delta) => {
   elMarker.style.left = pos + '%';
+  if (delta && delta > 0) {
+    player.updateRegen(delta);
+    refreshPlayerHpUI();
+  }
 };
 
 timingBar.onHit = (result) => {
@@ -245,6 +253,7 @@ function refreshPlayerUI() {
   displayInventory();
   displayCraftingMenu();
   updateStatsDisplay();
+  refreshPlayerHpUI();
 }
 
 function refreshEnemyUI() {
@@ -258,7 +267,41 @@ function refreshEnemyUI() {
   else elEnemyHpBar.style.background = 'linear-gradient(90deg,#cc3333,#ff6666)';
 }
 
-// ── Combat log hook ───────────────────────────────────────────
+// ── Player HP / regen UI ──────────────────────────────────────
+function refreshPlayerHpUI() {
+  const maxHp = player.maxHp;
+  const curHp = player.currentHp;
+  const pct   = maxHp > 0 ? Math.round(curHp / maxHp * 100) : 0;
+
+  const bar = document.getElementById('player-hp-bar');
+  bar.style.width = pct + '%';
+  if (pct < 25)      bar.style.background = 'linear-gradient(90deg,#881111,#cc2222)';
+  else if (pct < 50) bar.style.background = 'linear-gradient(90deg,#994400,#cc7700)';
+  else               bar.style.background = 'linear-gradient(90deg,#226622,#44aa44)';
+
+  document.getElementById('player-hp-label').textContent = `HP: ${curHp} / ${maxHp}`;
+
+  const regenEl = document.getElementById('regen-status');
+  regenEl.textContent = player.isRegenerating ? '💚 Regenerating...' : '';
+}
+
+// ── Player death & revive ─────────────────────────────────────
+function handlePlayerDeath() {
+  elBtnAttack.disabled = true;
+  onGameLog('💀 You were defeated! Reviving in 2 seconds...');
+  refreshPlayerHpUI();
+  setTimeout(() => {
+    player.currentHp           = player.maxHp;
+    player.timeSinceLastDamage = 0;
+    player.regenAccumulator    = 0;
+    player.isRegenerating      = false;
+    onGameLog('✨ You have been revived!');
+    refreshPlayerHpUI();
+    if (!battleOver) elBtnAttack.disabled = false;
+  }, 2000);
+}
+
+
 function onGameLog(msg, type) {
   const div = document.createElement('div');
   div.className = 'log-entry';
@@ -473,6 +516,15 @@ elBtnAttack.addEventListener('click', () => {
 
   if (!currentEnemy.isAlive()) {
     endFight();
+    return;
+  }
+
+  // Enemy counterattack
+  const dmgTaken = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
+  player.takeDamage(dmgTaken);
+  refreshPlayerHpUI();
+  if (!player.isAlive()) {
+    handlePlayerDeath();
   }
 });
 

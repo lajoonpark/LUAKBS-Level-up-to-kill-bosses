@@ -64,11 +64,22 @@ class Player {
     this.gold       = 0;
     this.gems       = 0;
 
+    // ── Health & regeneration ──────────────────────────────────
+    this.currentHp           = this.maxHp;  // full HP on creation
+    this.timeSinceLastDamage = 0;           // seconds since last hit
+    this.regenAccumulator    = 0;           // seconds accumulated toward next heal tick
+    this.isRegenerating      = false;       // true while regen is active
+
     this.weapon = new Weapon('Rusty Sword', 8, 'common');
     this.log    = [];  // combat/event log kept for the UI
 
     this.inventory      = {};  // { itemName: quantity }
     this.craftedWeapons = [];  // Weapon[] – weapons made at the crafting table
+  }
+
+  // ── Max HP derived from vitality (same formula as calculateTotalStats) ──
+  get maxHp() {
+    return this.stats.vitality * 10;
   }
 
   // ── Scaling formula: base 100 * level^1.5 ──────────────────
@@ -108,6 +119,58 @@ class Player {
     this.statPoints--;
     this._addLog(`+1 ${statName} → ${this.stats[statName]} (${this.statPoints} pts left)`);
     return true;
+  }
+
+  // ── Is the player alive? ───────────────────────────────────
+  isAlive() {
+    return this.currentHp > 0;
+  }
+
+  // ── Take damage from an enemy ──────────────────────────────
+  // Reduces currentHp, resets the regen delay timer and stops
+  // any active regeneration so healing restarts from scratch.
+  takeDamage(amount) {
+    if (!this.isAlive()) return;
+    this.currentHp           = Math.max(0, this.currentHp - amount);
+    this.timeSinceLastDamage = 0;
+    this.regenAccumulator    = 0;
+    this.isRegenerating      = false;
+    this._addLog(`You took ${amount} damage. (${this.currentHp}/${this.maxHp} HP)`);
+  }
+
+  // ── Heal the player by amount (clamped to maxHp) ──────────
+  healPlayer(amount) {
+    this.currentHp = Math.min(this.maxHp, this.currentHp + amount);
+  }
+
+  // ── Called every frame to advance the regen system ────────
+  // deltaTime: seconds elapsed since last call
+  // – Waits 3 s after the last hit before healing starts.
+  // – Once active, heals 5 % of maxHp every second.
+  updateRegen(deltaTime) {
+    if (!this.isAlive()) {
+      this.isRegenerating = false;
+      return;
+    }
+    if (this.currentHp >= this.maxHp) {
+      this.isRegenerating = false;
+      return;
+    }
+
+    this.timeSinceLastDamage += deltaTime;
+
+    if (this.timeSinceLastDamage >= 3) {
+      this.isRegenerating    = true;
+      this.regenAccumulator += deltaTime;
+
+      if (this.regenAccumulator >= 1) {
+        this.regenAccumulator -= 1;
+        const healAmount = Math.max(1, Math.floor(this.maxHp * 0.05));
+        this.healPlayer(healAmount);
+      }
+    } else {
+      this.isRegenerating = false;
+    }
   }
 
   // ── Equip a weapon ─────────────────────────────────────────
@@ -166,7 +229,7 @@ class Player {
 
       // Enemy hits back
       const dmgTaken = Math.max(1, enemy.damage - Math.floor(this.stats.vitality * 0.5));
-      this._addLog(`${enemy.name} hits you for ${dmgTaken} damage.`);
+      this.takeDamage(dmgTaken);
     }
 
     this._collectRewards(enemy);
