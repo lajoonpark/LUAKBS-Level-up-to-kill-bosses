@@ -298,7 +298,9 @@ function refreshPlayerUI() {
   elGems.textContent       = player.gems;
   const ws = player.getWeaponStats(player.weapon);
   elWeaponDisp.textContent = `🗡 ${ws.name} (${ws.rarity}) – ${ws.damage} dmg`;
-  document.getElementById('race-name').textContent = player.race;
+  const raceNameEl = document.getElementById('race-name');
+  raceNameEl.textContent = player.race;
+  raceNameEl.className = 'rarity-' + RACES[player.race].rarity;
 
   for (const stat of ['strength', 'vitality', 'dexterity', 'luck']) {
     document.getElementById('stat-' + stat).textContent = player.stats[stat];
@@ -763,7 +765,9 @@ function openRerollMenu() {
 
   // Populate current race info
   const raceData = RACES[player.race];
-  document.getElementById('reroll-race-name').textContent = player.race;
+  const rerollRaceNameEl = document.getElementById('reroll-race-name');
+  rerollRaceNameEl.textContent = player.race;
+  rerollRaceNameEl.className = 'reroll-race-name rarity-' + raceData.rarity;
   document.getElementById('reroll-race-bonuses').textContent =
     `DMG ×${raceData.damageMultiplier.toFixed(2)}  |  HP ×${raceData.healthMultiplier.toFixed(2)}`;
 
@@ -771,11 +775,13 @@ function openRerollMenu() {
   const racesList = document.getElementById('reroll-races-list');
   racesList.innerHTML = '';
   for (const [name, data] of Object.entries(RACES)) {
+    const pct = ((RACE_WEIGHTS[name] / RACE_WEIGHTS_TOTAL) * 100).toFixed(1);
     const div = document.createElement('div');
     div.className = 'reroll-race-entry' + (name === player.race ? ' reroll-race-current' : '');
     div.innerHTML =
-      `<span class="reroll-race-entry-name">${name}</span>` +
-      `<span class="reroll-race-entry-stats">DMG ×${data.damageMultiplier.toFixed(2)} | HP ×${data.healthMultiplier.toFixed(2)}</span>`;
+      `<span class="reroll-race-entry-name rarity-${data.rarity}">${name}</span>` +
+      `<span class="reroll-race-entry-stats">DMG ×${data.damageMultiplier.toFixed(2)} | HP ×${data.healthMultiplier.toFixed(2)}</span>` +
+      `<span class="reroll-race-entry-chance">${pct}%</span>`;
     racesList.appendChild(div);
   }
 
@@ -815,7 +821,9 @@ function useRaceRerollFromMenu() {
 
   // Refresh modal content with new race
   const raceData = RACES[player.race];
-  document.getElementById('reroll-race-name').textContent = player.race;
+  const rerollRaceNameEl = document.getElementById('reroll-race-name');
+  rerollRaceNameEl.textContent = player.race;
+  rerollRaceNameEl.className = 'reroll-race-name rarity-' + raceData.rarity;
   document.getElementById('reroll-race-bonuses').textContent =
     `DMG ×${raceData.damageMultiplier.toFixed(2)}  |  HP ×${raceData.healthMultiplier.toFixed(2)}`;
 

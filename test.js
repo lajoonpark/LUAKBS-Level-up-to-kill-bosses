@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, rollRandomRace, getRerollDropChance } = require('./game.js');
+const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -430,20 +430,47 @@ assert(eal.currentHp === eal.maxHp,            'enemy currentHp == maxHp after r
 // ─────────────────────────────────────────────
 section('RACES data');
 assert(typeof RACES === 'object' && RACES !== null,         'RACES is an object');
-assert(Object.keys(RACES).length >= 4,                      'at least 4 races defined');
+assert(Object.keys(RACES).length >= 8,                      'at least 8 races defined');
 for (const [name, r] of Object.entries(RACES)) {
   assert(typeof r.damageMultiplier === 'number',            `${name} has damageMultiplier`);
   assert(typeof r.healthMultiplier === 'number',            `${name} has healthMultiplier`);
   assert(r.damageMultiplier > 0,                            `${name} damageMultiplier > 0`);
   assert(r.healthMultiplier > 0,                            `${name} healthMultiplier > 0`);
+  assert(typeof r.rarity === 'string' && r.rarity.length > 0, `${name} has a rarity string`);
 }
 // Spot-check expected races
-assert('Human' in RACES,                                    'Human race exists');
-assert('Orc'   in RACES,                                    'Orc race exists');
-assert('Elf'   in RACES,                                    'Elf race exists');
-assert('Dwarf' in RACES,                                    'Dwarf race exists');
+assert('Human'      in RACES,                               'Human race exists');
+assert('Orc'        in RACES,                               'Orc race exists');
+assert('Elf'        in RACES,                               'Elf race exists');
+assert('Dwarf'      in RACES,                               'Dwarf race exists');
+assert('Beastkin'   in RACES,                               'Beastkin race exists');
+assert('Vampire'    in RACES,                               'Vampire race exists');
+assert('Celestial'  in RACES,                               'Celestial race exists');
+assert('DragonBorn' in RACES,                               'DragonBorn race exists');
 assert(RACES.Human.damageMultiplier === 1.0,                'Human damageMultiplier 1.0');
 assert(RACES.Human.healthMultiplier === 1.0,                'Human healthMultiplier 1.0');
+assert(RACES.Human.rarity           === 'common',           'Human rarity is common');
+assert(RACES.Beastkin.rarity        === 'rare',             'Beastkin rarity is rare');
+assert(RACES.Vampire.rarity         === 'epic',             'Vampire rarity is epic');
+assert(RACES.Celestial.rarity       === 'legendary',        'Celestial rarity is legendary');
+assert(RACES.DragonBorn.rarity      === 'mythic',           'DragonBorn rarity is mythic');
+
+section('RACE_WEIGHTS data');
+assert(typeof RACE_WEIGHTS === 'object' && RACE_WEIGHTS !== null, 'RACE_WEIGHTS is an object');
+const raceWeightNames = Object.keys(RACE_WEIGHTS);
+assert(raceWeightNames.length === Object.keys(RACES).length, 'RACE_WEIGHTS has entry for every race');
+for (const name of Object.keys(RACES)) {
+  assert(typeof RACE_WEIGHTS[name] === 'number' && RACE_WEIGHTS[name] > 0, `${name} has positive weight`);
+}
+// Weights sum to 100
+assert(typeof RACE_WEIGHTS_TOTAL === 'number',              'RACE_WEIGHTS_TOTAL is a number');
+assert(Math.abs(RACE_WEIGHTS_TOTAL - 100) < 0.001,          'RACE_WEIGHTS_TOTAL equals 100');
+// Rarer races have lower weight
+assert(RACE_WEIGHTS.Human      > RACE_WEIGHTS.Elf,          'Human (common) outweighs Elf (uncommon)');
+assert(RACE_WEIGHTS.Elf        > RACE_WEIGHTS.Beastkin,     'Elf (uncommon) outweighs Beastkin (rare)');
+assert(RACE_WEIGHTS.Beastkin   > RACE_WEIGHTS.Vampire,      'Beastkin (rare) outweighs Vampire (epic)');
+assert(RACE_WEIGHTS.Vampire    > RACE_WEIGHTS.Celestial,    'Vampire (epic) outweighs Celestial (legendary)');
+assert(RACE_WEIGHTS.Celestial  > RACE_WEIGHTS.DragonBorn,   'Celestial (legendary) outweighs DragonBorn (mythic)');
 
 section('rollRandomRace()');
 const raceNames = Object.keys(RACES);
@@ -452,13 +479,24 @@ for (let i = 0; i < 50; i++) {
   assert(raceNames.includes(r),                             `rollRandomRace returns a valid race (${r})`);
   if (!raceNames.includes(r)) break; // stop spamming on failure
 }
-// Verify all races are reachable (run 1000 times; probabilistic)
+// Verify all races are reachable (run 5000 times; even mythic 0.5% expected ~25 hits)
 const seen = new Set();
-for (let i = 0; i < 1000; i++) seen.add(rollRandomRace());
+for (let i = 0; i < 5000; i++) seen.add(rollRandomRace());
 assert(seen.size === raceNames.length,                      'all races reachable via rollRandomRace');
 
-section('Player – race assigned on construction');
+// Common races should appear more often than rare/mythic ones
+{
+  const freq = {};
+  raceNames.forEach(n => { freq[n] = 0; });
+  for (let i = 0; i < 10000; i++) freq[rollRandomRace()]++;
+  assert(freq['Human']      > freq['DragonBorn'],           'Human appears more often than DragonBorn (weighted)');
+  assert(freq['Orc']        > freq['Celestial'],            'Orc appears more often than Celestial (weighted)');
+  assert(freq['Beastkin']   > freq['DragonBorn'],           'Beastkin appears more often than DragonBorn (weighted)');
+}
+
+section('Player – default race is Human');
 const pr_race = new Player();
+assert(pr_race.race === 'Human',                            'player starts as Human by default');
 assert(raceNames.includes(pr_race.race),                    'player starts with a valid race');
 
 section('Player – maxHp applies healthMultiplier');
@@ -475,6 +513,25 @@ const rawDmg = pr_dmg.weapon.baseDamage + pr_dmg.stats.strength * 1.5;
 assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.3),   'Elf baseDamage = floor(raw * 1.3)');
 pr_dmg.race = 'Dwarf'; // damageMultiplier 0.9
 assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 0.9),   'Dwarf baseDamage = floor(raw * 0.9)');
+pr_dmg.race = 'Beastkin'; // damageMultiplier 1.4
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.4),   'Beastkin baseDamage = floor(raw * 1.4)');
+pr_dmg.race = 'Vampire'; // damageMultiplier 1.5
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.5),   'Vampire baseDamage = floor(raw * 1.5)');
+pr_dmg.race = 'Celestial'; // damageMultiplier 1.6
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.6),   'Celestial baseDamage = floor(raw * 1.6)');
+pr_dmg.race = 'DragonBorn'; // damageMultiplier 1.8
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.8),   'DragonBorn baseDamage = floor(raw * 1.8)');
+
+section('Player – maxHp applies healthMultiplier for new races');
+const pr_hp2 = new Player();
+pr_hp2.race = 'Beastkin'; // healthMultiplier 1.1
+assert(pr_hp2.maxHp === Math.floor(pr_hp2.stats.vitality * 10 * 1.1), 'Beastkin maxHp = vitality*10*1.1');
+pr_hp2.race = 'Vampire'; // healthMultiplier 0.8
+assert(pr_hp2.maxHp === Math.floor(pr_hp2.stats.vitality * 10 * 0.8), 'Vampire maxHp = vitality*10*0.8');
+pr_hp2.race = 'Celestial'; // healthMultiplier 1.2
+assert(pr_hp2.maxHp === Math.floor(pr_hp2.stats.vitality * 10 * 1.2), 'Celestial maxHp = vitality*10*1.2');
+pr_hp2.race = 'DragonBorn'; // healthMultiplier 1.4
+assert(pr_hp2.maxHp === Math.floor(pr_hp2.stats.vitality * 10 * 1.4), 'DragonBorn maxHp = vitality*10*1.4');
 
 section('calculateTotalStats – includes race info');
 const pr_ts = new Player();

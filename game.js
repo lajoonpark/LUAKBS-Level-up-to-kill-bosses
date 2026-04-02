@@ -7,16 +7,42 @@
 //  Race system
 // ─────────────────────────────────────────────
 const RACES = {
-  Human: { damageMultiplier: 1.0, healthMultiplier: 1.0 },
-  Orc:   { damageMultiplier: 1.2, healthMultiplier: 1.3 },
-  Elf:   { damageMultiplier: 1.3, healthMultiplier: 0.9 },
-  Dwarf: { damageMultiplier: 0.9, healthMultiplier: 1.5 },
+  Human:     { damageMultiplier: 1.0, healthMultiplier: 1.0, rarity: 'common' },
+  Orc:       { damageMultiplier: 1.2, healthMultiplier: 1.3, rarity: 'common' },
+  Elf:       { damageMultiplier: 1.3, healthMultiplier: 0.9, rarity: 'uncommon' },
+  Dwarf:     { damageMultiplier: 0.9, healthMultiplier: 1.5, rarity: 'uncommon' },
+  Beastkin:  { damageMultiplier: 1.4, healthMultiplier: 1.1, rarity: 'rare' },
+  Vampire:   { damageMultiplier: 1.5, healthMultiplier: 0.8, rarity: 'epic' },
+  Celestial: { damageMultiplier: 1.6, healthMultiplier: 1.2, rarity: 'legendary' },
+  DragonBorn: { damageMultiplier: 1.8, healthMultiplier: 1.4, rarity: 'mythic' },
 };
 
-// Returns a random race name (equal probability for each race)
+// Roll weight for each race – higher weight means more likely to roll.
+// Total weight: 100 (each entry is a direct percentage).
+const RACE_WEIGHTS = {
+  Human:      40,
+  Orc:        25,
+  Elf:        15,
+  Dwarf:      10,
+  Beastkin:   5,
+  Vampire:    3,
+  Celestial:  1.5,
+  DragonBorn: 0.5,
+};
+
+// Pre-computed total weight for rollRandomRace (RACE_WEIGHTS is constant).
+const RACE_WEIGHTS_TOTAL = Object.values(RACE_WEIGHTS).reduce((sum, w) => sum + w, 0);
+
+// Returns a weighted-random race name; rarer races have lower probability.
 function rollRandomRace() {
-  const names = Object.keys(RACES);
-  return names[Math.floor(Math.random() * names.length)];
+  const entries = Object.entries(RACE_WEIGHTS);
+  let roll = Math.random() * RACE_WEIGHTS_TOTAL;
+  for (const [name, weight] of entries) {
+    roll -= weight;
+    if (roll <= 0) return name;
+  }
+  // Fallback – should never reach here in practice
+  return entries[entries.length - 1][0];
 }
 
 // Returns the drop chance for a Race Reroll item given the player's luck stat
@@ -91,7 +117,7 @@ class Player {
     this.gems       = 0;
 
     // ── Race ──────────────────────────────────────────────────
-    this.race = rollRandomRace();
+    this.race = 'Human'; // new players always start as Human
 
     // ── Health & regeneration ──────────────────────────────────
     this.currentHp           = this.maxHp;  // full HP on creation
@@ -525,5 +551,5 @@ const CRAFTING_RECIPES = [
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, rollRandomRace, getRerollDropChance };
+  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance };
 }

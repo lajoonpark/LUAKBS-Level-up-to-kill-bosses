@@ -446,6 +446,15 @@ h1 {
 .weapon-card .rarity.rare       { color: #4499ff; }
 .weapon-card .rarity.epic       { color: #cc66ff; }
 .weapon-card .rarity.legendary  { color: #ff9900; }
+.weapon-card .rarity.mythic     { color: #ff4444; }
+
+/* Shared rarity color tokens (used outside weapon cards, e.g. race reroll modal) */
+.rarity-common     { color: #aaaaaa; }
+.rarity-uncommon   { color: #66cc44; }
+.rarity-rare       { color: #4499ff; }
+.rarity-epic       { color: #cc66ff; }
+.rarity-legendary  { color: #ff9900; }
+.rarity-mythic     { color: #ff4444; font-weight: 700; }
 
 /* Border-left rarity accent */
 .weapon-card:has(.rarity.common)    { border-left: 3px solid #888888; }
@@ -1001,6 +1010,7 @@ h1 {
 }
 .reroll-race-entry-name { min-width: 60px; }
 .reroll-race-entry-stats { color: #88aacc; font-size: 0.75rem; }
+.reroll-race-entry-chance { color: #aaaaaa; font-size: 0.7rem; margin-left: auto; }
 
 .reroll-item-count {
   text-align: center;
