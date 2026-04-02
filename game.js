@@ -4,6 +4,28 @@
 // ============================================================
 
 // ─────────────────────────────────────────────
+//  Race system
+// ─────────────────────────────────────────────
+const RACES = {
+  Human: { damageMultiplier: 1.0, healthMultiplier: 1.0 },
+  Orc:   { damageMultiplier: 1.2, healthMultiplier: 1.3 },
+  Elf:   { damageMultiplier: 1.3, healthMultiplier: 0.9 },
+  Dwarf: { damageMultiplier: 0.9, healthMultiplier: 1.5 },
+};
+
+// Returns a random race name (equal probability for each race)
+function rollRandomRace() {
+  const names = Object.keys(RACES);
+  return names[Math.floor(Math.random() * names.length)];
+}
+
+// Returns the drop chance for a Race Reroll item given the player's luck stat
+// Base: 5%; each luck point adds 0.1%
+function getRerollDropChance(luck) {
+  return 0.05 + luck * 0.001;
+}
+
+// ─────────────────────────────────────────────
 //  Weapon
 // ─────────────────────────────────────────────
 class Weapon {
@@ -68,6 +90,9 @@ class Player {
     this.gold       = 0;
     this.gems       = 0;
 
+    // ── Race ──────────────────────────────────────────────────
+    this.race = rollRandomRace();
+
     // ── Health & regeneration ──────────────────────────────────
     this.currentHp           = this.maxHp;  // full HP on creation
     this.timeSinceLastDamage = 0;           // seconds since last hit
@@ -81,9 +106,9 @@ class Player {
     this.craftedWeapons = [];  // Weapon[] – weapons made at the crafting table
   }
 
-  // ── Max HP derived from vitality (same formula as calculateTotalStats) ──
+  // ── Max HP derived from vitality and race health multiplier ──
   get maxHp() {
-    return this.stats.vitality * 10;
+    return Math.floor(this.stats.vitality * 10 * RACES[this.race].healthMultiplier);
   }
 
   // ── Scaling formula: base 100 * level^1.5 ──────────────────
@@ -189,19 +214,51 @@ class Player {
     return Math.min(0.05 + this.stats.dexterity * 0.01, 0.75);
   }
 
-  // ── Base attack damage ──────────────────────────────────────
+  // ── Base attack damage (with race multiplier) ───────────────
   baseDamage() {
-    return this.weapon.baseDamage + this.stats.strength * 2;
+    return Math.floor((this.weapon.baseDamage + this.stats.strength * 2) * RACES[this.race].damageMultiplier);
   }
 
   // ── Computed combat stats summary (for the stats display) ──
   calculateTotalStats() {
+    const race = RACES[this.race];
     return {
-      totalDamage : this.baseDamage(),
-      critChance  : this.critChance() * 100,
-      maxHp       : this.stats.vitality * 10,
-      luckBonus   : this.stats.luck,
+      totalDamage      : this.baseDamage(),
+      critChance       : this.critChance() * 100,
+      maxHp            : this.maxHp,
+      luckBonus        : this.stats.luck,
+      raceName         : this.race,
+      damageMultiplier : race.damageMultiplier,
+      healthMultiplier : race.healthMultiplier,
     };
+  }
+
+  // ── Returns the active race modifiers ──────────────────────
+  applyRaceModifiers() {
+    const race = RACES[this.race];
+    return {
+      race             : this.race,
+      damageMultiplier : race.damageMultiplier,
+      healthMultiplier : race.healthMultiplier,
+      totalDamage      : this.baseDamage(),
+      maxHp            : this.maxHp,
+    };
+  }
+
+  // ── Consume a Race Reroll from inventory and re-roll race ──
+  useRaceReroll() {
+    if (!this.inventory['Race Reroll'] || this.inventory['Race Reroll'] <= 0) {
+      this._addLog('❌ No Race Reroll available!');
+      return false;
+    }
+    this.inventory['Race Reroll']--;
+    if (this.inventory['Race Reroll'] <= 0) delete this.inventory['Race Reroll'];
+    const oldRace = this.race;
+    this.race = rollRandomRace();
+    // Clamp currentHp to new maxHp after race change
+    this.currentHp = Math.min(this.currentHp, this.maxHp);
+    this._addLog(`🎲 Race changed: ${oldRace} → ${this.race} (DMG ×${RACES[this.race].damageMultiplier}, HP ×${RACES[this.race].healthMultiplier})`);
+    return true;
   }
 
   // ── Attack an enemy (returns damage dealt) ─────────────────
@@ -251,6 +308,11 @@ class Player {
     if (Math.random() < gemChance) {
       this.gems++;
       this._addLog(`💎 Gem dropped! Total gems: ${this.gems}`);
+    }
+
+    // Race Reroll drop – base 5%, +0.1% per luck point
+    if (Math.random() < getRerollDropChance(this.stats.luck)) {
+      this.addItemToInventory('Race Reroll', 1);
     }
 
     // Item drops from enemy drop table
@@ -430,5 +492,5 @@ const CRAFTING_RECIPES = [
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES };
+  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, rollRandomRace, getRerollDropChance };
 }

@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES } = require('./game.js');
+const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, rollRandomRace, getRerollDropChance } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -83,6 +83,7 @@ assert(w.baseDamage === 25,      'weapon base damage correct');
 assert(w.rarity === 'rare',      'weapon rarity correct');
 
 const p5 = new Player();
+p5.race = 'Human'; // neutral multiplier so baseDamage = weapon + strength*2
 p5.equipWeapon(w);
 assert(p5.weapon === w,          'weapon equip works');
 assert(p5.baseDamage() === 25 + p5.stats.strength * 2, 'baseDamage uses weapon + strength*2');
@@ -213,6 +214,7 @@ assert(failCraft === null,                                     'craftItem return
 
 // Damage formula uses crafted weapon
 pc.equipWeapon(crafted);
+pc.race = 'Human'; // neutral multiplier
 assert(pc.baseDamage() === crafted.baseDamage + pc.stats.strength * 2,
   'damage = weaponDamage + strength*2 for crafted weapon');
 
@@ -268,13 +270,15 @@ assert(tb.speed === 90, 'speed 90 at level 10');
 // ─────────────────────────────────────────────
 section('Health – defaults');
 const ph2 = new Player();
-assert(ph2.maxHp === ph2.stats.vitality * 10,  'maxHp = vitality * 10');
 assert(ph2.currentHp === ph2.maxHp,            'starts at full HP');
 assert(ph2.isAlive(),                          'alive at full HP');
 assert(ph2.isRegenerating === false,           'not regenerating on start');
+ph2.race = 'Human'; // neutral multiplier so formula is vitality * 10
+assert(ph2.maxHp === ph2.stats.vitality * 10,  'maxHp = vitality * 10 (Human race)');
 
 section('Health – maxHp getter updates with vitality');
 const phv = new Player();
+phv.race = 'Human'; // neutral multiplier
 phv.stats.vitality = 10;
 assert(phv.maxHp === 100,                      'maxHp reflects updated vitality');
 
@@ -362,6 +366,112 @@ assert(eal.hp === 60,                          'setting currentHp updates hp');
 assert(eal.currentHp === 60,                   'getter reflects new value');
 eal.reset();
 assert(eal.currentHp === eal.maxHp,            'enemy currentHp == maxHp after reset');
+
+// ─────────────────────────────────────────────
+//  Race system
+// ─────────────────────────────────────────────
+section('RACES data');
+assert(typeof RACES === 'object' && RACES !== null,         'RACES is an object');
+assert(Object.keys(RACES).length >= 4,                      'at least 4 races defined');
+for (const [name, r] of Object.entries(RACES)) {
+  assert(typeof r.damageMultiplier === 'number',            `${name} has damageMultiplier`);
+  assert(typeof r.healthMultiplier === 'number',            `${name} has healthMultiplier`);
+  assert(r.damageMultiplier > 0,                            `${name} damageMultiplier > 0`);
+  assert(r.healthMultiplier > 0,                            `${name} healthMultiplier > 0`);
+}
+// Spot-check expected races
+assert('Human' in RACES,                                    'Human race exists');
+assert('Orc'   in RACES,                                    'Orc race exists');
+assert('Elf'   in RACES,                                    'Elf race exists');
+assert('Dwarf' in RACES,                                    'Dwarf race exists');
+assert(RACES.Human.damageMultiplier === 1.0,                'Human damageMultiplier 1.0');
+assert(RACES.Human.healthMultiplier === 1.0,                'Human healthMultiplier 1.0');
+
+section('rollRandomRace()');
+const raceNames = Object.keys(RACES);
+for (let i = 0; i < 50; i++) {
+  const r = rollRandomRace();
+  assert(raceNames.includes(r),                             `rollRandomRace returns a valid race (${r})`);
+  if (!raceNames.includes(r)) break; // stop spamming on failure
+}
+// Verify all races are reachable (run 1000 times; probabilistic)
+const seen = new Set();
+for (let i = 0; i < 1000; i++) seen.add(rollRandomRace());
+assert(seen.size === raceNames.length,                      'all races reachable via rollRandomRace');
+
+section('Player – race assigned on construction');
+const pr_race = new Player();
+assert(raceNames.includes(pr_race.race),                    'player starts with a valid race');
+
+section('Player – maxHp applies healthMultiplier');
+const pr_hp = new Player();
+pr_hp.race = 'Orc'; // healthMultiplier 1.3
+assert(pr_hp.maxHp === Math.floor(pr_hp.stats.vitality * 10 * 1.3), 'Orc maxHp = vitality*10*1.3');
+pr_hp.race = 'Elf'; // healthMultiplier 0.9
+assert(pr_hp.maxHp === Math.floor(pr_hp.stats.vitality * 10 * 0.9), 'Elf maxHp = vitality*10*0.9');
+
+section('Player – baseDamage applies damageMultiplier');
+const pr_dmg = new Player();
+pr_dmg.race = 'Elf'; // damageMultiplier 1.3
+const rawDmg = pr_dmg.weapon.baseDamage + pr_dmg.stats.strength * 2;
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 1.3),   'Elf baseDamage = floor(raw * 1.3)');
+pr_dmg.race = 'Dwarf'; // damageMultiplier 0.9
+assert(pr_dmg.baseDamage() === Math.floor(rawDmg * 0.9),   'Dwarf baseDamage = floor(raw * 0.9)');
+
+section('calculateTotalStats – includes race info');
+const pr_ts = new Player();
+pr_ts.race = 'Orc';
+const ts = pr_ts.calculateTotalStats();
+assert(ts.raceName         === 'Orc',                       'totalStats includes raceName');
+assert(ts.damageMultiplier === RACES.Orc.damageMultiplier,  'totalStats includes damageMultiplier');
+assert(ts.healthMultiplier === RACES.Orc.healthMultiplier,  'totalStats includes healthMultiplier');
+assert(ts.totalDamage      === pr_ts.baseDamage(),          'totalStats totalDamage matches baseDamage()');
+assert(ts.maxHp            === pr_ts.maxHp,                 'totalStats maxHp matches maxHp getter');
+
+section('applyRaceModifiers()');
+const pr_arm = new Player();
+pr_arm.race = 'Dwarf';
+const mods = pr_arm.applyRaceModifiers();
+assert(mods.race             === 'Dwarf',                   'applyRaceModifiers race name correct');
+assert(mods.damageMultiplier === 0.9,                       'applyRaceModifiers damageMultiplier correct');
+assert(mods.healthMultiplier === 1.5,                       'applyRaceModifiers healthMultiplier correct');
+assert(mods.totalDamage      === pr_arm.baseDamage(),       'applyRaceModifiers totalDamage correct');
+assert(mods.maxHp            === pr_arm.maxHp,              'applyRaceModifiers maxHp correct');
+
+section('getRerollDropChance(luck)');
+const eps = 1e-9; // tolerance for floating-point comparisons
+assert(Math.abs(getRerollDropChance(0)   - 0.05) < eps, 'base drop chance 5% at luck 0');
+assert(Math.abs(getRerollDropChance(10)  - 0.06) < eps, '6% at luck 10');
+assert(Math.abs(getRerollDropChance(100) - 0.15) < eps, '15% at luck 100');
+
+section('useRaceReroll()');
+const pr_rr = new Player();
+pr_rr.race = 'Human';
+
+// Should fail without item
+const failReroll = pr_rr.useRaceReroll();
+assert(failReroll === false,                                'useRaceReroll fails without item');
+
+// Should succeed with item
+pr_rr.inventory['Race Reroll'] = 1;
+const successReroll = pr_rr.useRaceReroll();
+assert(successReroll === true,                              'useRaceReroll succeeds with item');
+assert(raceNames.includes(pr_rr.race),                     'useRaceReroll assigns a valid race');
+assert((pr_rr.inventory['Race Reroll'] || 0) === 0,        'Race Reroll consumed from inventory');
+
+// Multiple rerolls
+pr_rr.inventory['Race Reroll'] = 3;
+pr_rr.useRaceReroll();
+pr_rr.useRaceReroll();
+assert(pr_rr.inventory['Race Reroll'] === 1,               'multiple rerolls deduct correctly');
+
+// currentHp clamped to new maxHp after reroll
+const pr_clamp = new Player();
+pr_clamp.race = 'Human';
+pr_clamp.currentHp = pr_clamp.maxHp; // full HP
+pr_clamp.inventory['Race Reroll'] = 1;
+pr_clamp.useRaceReroll();
+assert(pr_clamp.currentHp <= pr_clamp.maxHp,               'currentHp clamped to new maxHp after reroll');
 
 // ─────────────────────────────────────────────
 //  Summary

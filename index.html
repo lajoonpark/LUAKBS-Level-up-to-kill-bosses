@@ -57,6 +57,7 @@
     </div>
 
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
+    <div id="race-display" style="margin-top:6px">🧬 Race: <span id="race-name">Human</span></div>
 
     <div id="combat-stats-section">
       <div id="combat-stats-header">
@@ -74,6 +75,12 @@
       </div>
       <div class="cstat-row">
         <span>Luck Bonus</span><span id="cstat-luck">—</span>
+      </div>
+      <div class="cstat-row">
+        <span>DMG Multiplier</span><span id="cstat-dmg-mult">—</span>
+      </div>
+      <div class="cstat-row">
+        <span>HP Multiplier</span><span id="cstat-hp-mult">—</span>
       </div>
     </div>
 
@@ -240,6 +247,7 @@ function refreshPlayerUI() {
   elGold.textContent       = player.gold;
   elGems.textContent       = player.gems;
   elWeaponDisp.textContent = `🗡 ${player.weapon.name} (${player.weapon.rarity})`;
+  document.getElementById('race-name').textContent = player.race;
 
   for (const stat of ['strength', 'vitality', 'dexterity', 'luck']) {
     document.getElementById('stat-' + stat).textContent = player.stats[stat];
@@ -358,7 +366,18 @@ function displayInventory() {
   items.forEach(([itemName, qty]) => {
     const span = document.createElement('span');
     span.className = 'inv-item';
-    span.textContent = `${itemName} ×${qty}`;
+    if (itemName === 'Race Reroll') {
+      span.className += ' inv-item-usable';
+      span.title = 'Click to reroll your race!';
+      span.textContent = `🎲 ${itemName} ×${qty}`;
+      span.addEventListener('click', () => {
+        if (player.useRaceReroll()) {
+          refreshPlayerUI();
+        }
+      });
+    } else {
+      span.textContent = `${itemName} ×${qty}`;
+    }
     list.appendChild(span);
   });
 }
@@ -596,10 +615,12 @@ function calculateTotalStats() {
 function updateStatsDisplay() {
   const s = calculateTotalStats();
   const fields = {
-    'cstat-damage': s.totalDamage,
-    'cstat-crit'  : s.critChance.toFixed(1) + '%',
-    'cstat-maxhp' : s.maxHp,
-    'cstat-luck'  : '+' + s.luckBonus,
+    'cstat-damage'  : s.totalDamage,
+    'cstat-crit'    : s.critChance.toFixed(1) + '%',
+    'cstat-maxhp'   : s.maxHp,
+    'cstat-luck'    : '+' + s.luckBonus,
+    'cstat-dmg-mult': s.damageMultiplier.toFixed(2) + '×',
+    'cstat-hp-mult' : s.healthMultiplier.toFixed(2) + '×',
   };
   for (const [id, value] of Object.entries(fields)) {
     const el  = document.getElementById(id);
