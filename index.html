@@ -177,7 +177,7 @@
 
   <!-- ── Weapon Shop (full width) ── -->
   <div id="shop-panel" class="panel">
-    <h2>⚒ Weapons (click to equip)</h2>
+    <h2>🗡 My Weapons (click to equip)</h2>
     <div id="weapon-list"></div>
   </div>
 
@@ -276,7 +276,8 @@ function refreshPlayerUI() {
   elStatPoints.textContent = player.statPoints;
   elGold.textContent       = player.gold;
   elGems.textContent       = player.gems;
-  elWeaponDisp.textContent = `🗡 ${player.weapon.name} (${player.weapon.rarity})`;
+  const ws = player.getWeaponStats(player.weapon);
+  elWeaponDisp.textContent = `🗡 ${ws.name} (${ws.rarity}) – ${ws.damage} dmg`;
   document.getElementById('race-name').textContent = player.race;
 
   for (const stat of ['strength', 'vitality', 'dexterity', 'luck']) {
@@ -364,29 +365,32 @@ function onGameLog(msg, type) {
 function buildWeaponShop() {
   const list = document.getElementById('weapon-list');
   list.innerHTML = '';
-  const allWeapons = [...WEAPONS, ...player.craftedWeapons];
-  allWeapons.forEach((w) => {
-    const isCrafted = player.craftedWeapons.includes(w) || WEAPONS.includes(w);
+  if (player.craftedWeapons.length === 0) {
+    list.innerHTML = '<span class="inv-empty">No weapons crafted yet – use the crafting panel below</span>';
+    return;
+  }
+  player.craftedWeapons.forEach((w) => {
+    const isEquipped = player.weapon === w;
+    const stats = player.getWeaponStats(w);
     const card = document.createElement('div');
-    card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '') + (!isCrafted ? ' weapon-locked' : '');
-    const craftedBadge = player.craftedWeapons.includes(w)
-      ? `<div class="crafted-badge">crafted</div>` : '';
+    card.className = 'weapon-card' + (isEquipped ? ' equipped' : '');
     card.innerHTML =
       `<div class="rarity ${w.rarity}">${w.rarity}</div>` +
-      craftedBadge +
+      `<div class="crafted-badge">crafted</div>` +
       `<div>${w.name}</div>` +
-      `<div style="color:#888;font-size:0.78rem">${w.baseDamage} base dmg</div>`;
-    card.addEventListener('click', () => {
-      const ok = player.equipWeapon(w);
-      if (ok) {
-        buildWeaponShop();
-        refreshPlayerUI();
-      } else {
-        // Flash the card to indicate the block
-        card.classList.add('equip-blocked');
-        setTimeout(() => card.classList.remove('equip-blocked'), 600);
-      }
-    });
+      `<div style="color:#888;font-size:0.78rem">${stats.damage} base dmg</div>`;
+    if (!isEquipped) {
+      card.addEventListener('click', () => {
+        const ok = player.equipWeapon(w);
+        if (ok) {
+          buildWeaponShop();
+          refreshPlayerUI();
+        } else {
+          card.classList.add('equip-blocked');
+          setTimeout(() => card.classList.remove('equip-blocked'), 600);
+        }
+      });
+    }
     list.appendChild(card);
   });
 }
@@ -453,7 +457,8 @@ function displayCraftingMenu() {
       `<button class="btn craft-btn" ${canCraft ? '' : 'disabled'}>🔨 Craft</button>`;
 
     card.querySelector('.craft-btn').addEventListener('click', () => {
-      const crafted = player.craftItem(recipe);
+      if (!confirm(`Craft ${recipe.weapon.name}?\nThis will consume your materials and the weapon will be immediately equipped.`)) return;
+      const crafted = player.craftWeapon(recipe);
       if (crafted) {
         buildWeaponShop();
         refreshPlayerUI();

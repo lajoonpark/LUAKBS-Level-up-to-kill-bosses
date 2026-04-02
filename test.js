@@ -38,6 +38,8 @@ assert(p.stats.vitality  === 5, 'default vitality 5');
 assert(p.stats.dexterity === 5, 'default dexterity 5');
 assert(p.stats.luck      === 5, 'default luck 5');
 assert(p.weapon instanceof Weapon, 'starts with a Weapon');
+assert(p.craftedWeapons.length === 1,   'starter weapon added to craftedWeapons');
+assert(p.craftedWeapons[0] === p.weapon, 'starter weapon is the crafted weapon in slot 0');
 
 // ─────────────────────────────────────────────
 //  Leveling
@@ -209,7 +211,7 @@ assert(crafted instanceof Weapon,                              'craftItem return
 assert(crafted.name === 'Iron Sword',                         'crafted weapon has correct name');
 assert(crafted.baseDamage === ironRecipe.weapon.baseDamage,   'crafted weapon has correct damage');
 assert(crafted.rarity === ironRecipe.weapon.rarity,           'crafted weapon has correct rarity');
-assert(pc.craftedWeapons.length === 1,                        'weapon added to craftedWeapons');
+assert(pc.craftedWeapons.includes(crafted),                   'crafted weapon added to craftedWeapons');
 assert((pc.inventory['Iron Ore'] || 0) === 0,                 'materials deducted from inventory');
 assert((pc.inventory['Wood'] || 0) === 0,                     'wood deducted from inventory');
 assert(pc.gold === 100,                                       'gold deducted');
@@ -223,6 +225,56 @@ pc.equipWeapon(crafted);
 pc.race = 'Human'; // neutral multiplier
 assert(pc.baseDamage() === Math.floor(crafted.baseDamage + pc.stats.strength * 1.5),
   'damage = floor(weaponDamage + strength*1.5) for crafted weapon');
+
+// WEAPONS array items cannot be equipped directly (not in craftedWeapons)
+const shopWeapon = WEAPONS[1]; // Iron Blade from WEAPONS array
+const shopEquipBlocked = pc.equipWeapon(shopWeapon);
+assert(shopEquipBlocked === false,                             'cannot equip a WEAPONS-array item without crafting');
+
+// ─────────────────────────────────────────────
+//  checkWeaponCrafted
+// ─────────────────────────────────────────────
+section('checkWeaponCrafted');
+const pcw = new Player();
+assert(pcw.checkWeaponCrafted(pcw.weapon) === true,           'starter weapon is considered crafted');
+const uncraftedW = new Weapon('Raw Steel', 40, 'rare');
+assert(pcw.checkWeaponCrafted(uncraftedW) === false,          'new uncrafted weapon returns false');
+pcw.craftedWeapons.push(uncraftedW);
+assert(pcw.checkWeaponCrafted(uncraftedW) === true,           'returns true after pushing to craftedWeapons');
+
+// ─────────────────────────────────────────────
+//  getWeaponStats
+// ─────────────────────────────────────────────
+section('getWeaponStats');
+const pgs = new Player();
+const ws = pgs.getWeaponStats(pgs.weapon);
+assert(ws.name === pgs.weapon.name,                           'getWeaponStats name matches weapon');
+assert(ws.damage === pgs.weapon.baseDamage,                   'getWeaponStats damage matches baseDamage');
+assert(ws.rarity === pgs.weapon.rarity,                       'getWeaponStats rarity matches weapon');
+assert(ws.isCrafted === true,                                  'getWeaponStats isCrafted true for starter weapon');
+
+const unequippedW = new Weapon('Phantom Edge', 60, 'epic');
+const wsU = pgs.getWeaponStats(unequippedW);
+assert(wsU.isCrafted === false,                               'getWeaponStats isCrafted false for uncrafted weapon');
+
+// ─────────────────────────────────────────────
+//  craftWeapon (craft + auto-equip)
+// ─────────────────────────────────────────────
+section('craftWeapon');
+const pcr = new Player();
+pcr.addItemToInventory('Iron Ore', 5);
+pcr.addItemToInventory('Wood', 2);
+pcr.gold = 200;
+const ironRecipe2 = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
+const craftedAndEquipped = pcr.craftWeapon(ironRecipe2);
+assert(craftedAndEquipped instanceof Weapon,                   'craftWeapon returns a Weapon');
+assert(craftedAndEquipped.name === 'Iron Sword',              'craftWeapon crafts the correct weapon');
+assert(pcr.weapon === craftedAndEquipped,                      'craftWeapon auto-equips the crafted weapon');
+assert(pcr.checkWeaponCrafted(craftedAndEquipped) === true,   'craftWeapon marks weapon as crafted');
+
+// craftWeapon fails without materials
+const failCraftWeapon = pcr.craftWeapon(ironRecipe2);
+assert(failCraftWeapon === null,                               'craftWeapon returns null when missing materials');
 
 // ─────────────────────────────────────────────
 //  TimingBar (requires manual override of perf)

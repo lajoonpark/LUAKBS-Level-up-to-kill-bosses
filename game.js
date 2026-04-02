@@ -104,6 +104,9 @@ class Player {
 
     this.inventory      = {};  // { itemName: quantity }
     this.craftedWeapons = [];  // Weapon[] – weapons made at the crafting table
+
+    // The starting weapon is pre-crafted so the player can re-equip it
+    this.craftedWeapons.push(this.weapon);
   }
 
   // ── Max HP derived from vitality and race health multiplier ──
@@ -205,10 +208,9 @@ class Player {
 
   // ── Equip a weapon ─────────────────────────────────────────
   // A weapon can only be equipped if it has been crafted (exists in
-  // craftedWeapons) or is one of the base shop weapons (WEAPONS array).
+  // craftedWeapons). The starting weapon is pre-added to craftedWeapons.
   equipWeapon(weapon) {
-    const isBaseWeapon = typeof WEAPONS !== 'undefined' && WEAPONS.includes(weapon);
-    if (!isBaseWeapon && !this.craftedWeapons.includes(weapon)) {
+    if (!this.craftedWeapons.includes(weapon)) {
       this._addLog('⚠ You must craft this weapon before equipping it.');
       return false;
     }
@@ -380,6 +382,29 @@ class Player {
     this.craftedWeapons.push(crafted);
     this._addLog(`🔨 Crafted ${crafted.toString()}!`, 'craft');
     return crafted;
+  }
+
+  // ── Craft a weapon and immediately equip it ────────────────
+  craftWeapon(recipe) {
+    const crafted = this.craftItem(recipe);
+    if (!crafted) return null;
+    this.equipWeapon(crafted);
+    return crafted;
+  }
+
+  // ── Check whether a weapon has been crafted ────────────────
+  checkWeaponCrafted(weapon) {
+    return this.craftedWeapons.includes(weapon);
+  }
+
+  // ── Get stats for a weapon ─────────────────────────────────
+  getWeaponStats(weapon) {
+    return {
+      name     : weapon.name,
+      damage   : weapon.baseDamage,
+      rarity   : weapon.rarity,
+      isCrafted: this.checkWeaponCrafted(weapon),
+    };
   }
 
   _addLog(msg, type = null) {
