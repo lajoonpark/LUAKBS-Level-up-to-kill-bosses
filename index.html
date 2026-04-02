@@ -31,22 +31,22 @@
 
     <div id="stats-group">
     <div class="stat-row">
-      <span>⚔ Strength</span>
+      <span><span aria-hidden="true">⚔</span> Strength</span>
       <span id="stat-strength">5</span>
       <button class="stat-alloc-btn" data-stat="strength">+</button>
     </div>
     <div class="stat-row">
-      <span>❤ Vitality</span>
+      <span><span aria-hidden="true">❤</span> Vitality</span>
       <span id="stat-vitality">5</span>
       <button class="stat-alloc-btn" data-stat="vitality">+</button>
     </div>
     <div class="stat-row">
-      <span>💨 Dexterity</span>
+      <span><span aria-hidden="true">💨</span> Dexterity</span>
       <span id="stat-dexterity">5</span>
       <button class="stat-alloc-btn" data-stat="dexterity">+</button>
     </div>
     <div class="stat-row">
-      <span>🍀 Luck</span>
+      <span><span aria-hidden="true">🍀</span> Luck</span>
       <span id="stat-luck">5</span>
       <button class="stat-alloc-btn" data-stat="luck">+</button>
     </div>
@@ -218,6 +218,8 @@ const ENEMY_PORTRAITS = {
   'Dragon Boss': '🐉',
 };
 
+// Difficulty tiers parallel ENEMIES array in game.js:
+// [0]=Slime, [1]=Goblin, [2]=Skeleton, [3]=Orc, [4]=Troll, [5]=Dark Knight, [6]=Dragon Boss
 const ENEMY_TIERS = ['tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss'];
 
 // ── Game state ──────────────────────────────────────────────
