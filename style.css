@@ -101,6 +101,16 @@ h1 {
   color: #c0a0ff;
 }
 
+/* ── Race row ── */
+#race-display {
+  font-size: 0.85rem;
+  color: #cc88ff;
+}
+#race-display #race-name {
+  font-weight: bold;
+  color: #ee99ff;
+}
+
 /* ── Player HP bar ── */
 #player-hp-bar-wrap {
   background: #1a1a3a;
@@ -532,6 +542,17 @@ h1 {
   padding: 2px 7px;
   font-size: 0.72rem;
   color: #88ccee;
+}
+
+.inv-item-usable {
+  cursor: pointer;
+  background: #2a1e3e;
+  border-color: #8844cc;
+  color: #cc88ff;
+}
+.inv-item-usable:hover {
+  background: #3a2a5a;
+  border-color: #bb66ff;
 }
 
 /* ── Crafting panel ── */
