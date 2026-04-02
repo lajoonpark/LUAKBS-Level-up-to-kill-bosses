@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, rollRandomRace, getRerollDropChance } = require('./game.js');
+const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -463,8 +463,8 @@ for (const name of Object.keys(RACES)) {
   assert(typeof RACE_WEIGHTS[name] === 'number' && RACE_WEIGHTS[name] > 0, `${name} has positive weight`);
 }
 // Weights sum to 100
-const totalWeight = Object.values(RACE_WEIGHTS).reduce((s, w) => s + w, 0);
-assert(Math.abs(totalWeight - 100) < 0.001,                 'RACE_WEIGHTS sum to 100');
+assert(typeof RACE_WEIGHTS_TOTAL === 'number',              'RACE_WEIGHTS_TOTAL is a number');
+assert(Math.abs(RACE_WEIGHTS_TOTAL - 100) < 0.001,          'RACE_WEIGHTS_TOTAL equals 100');
 // Rarer races have lower weight
 assert(RACE_WEIGHTS.Human      > RACE_WEIGHTS.Elf,          'Human (common) outweighs Elf (uncommon)');
 assert(RACE_WEIGHTS.Elf        > RACE_WEIGHTS.Beastkin,     'Elf (uncommon) outweighs Beastkin (rare)');

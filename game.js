@@ -14,7 +14,7 @@ const RACES = {
   Beastkin:  { damageMultiplier: 1.4, healthMultiplier: 1.1, rarity: 'rare' },
   Vampire:   { damageMultiplier: 1.5, healthMultiplier: 0.8, rarity: 'epic' },
   Celestial: { damageMultiplier: 1.6, healthMultiplier: 1.2, rarity: 'legendary' },
-  DragonBorn:{ damageMultiplier: 1.8, healthMultiplier: 1.4, rarity: 'mythic' },
+  DragonBorn: { damageMultiplier: 1.8, healthMultiplier: 1.4, rarity: 'mythic' },
 };
 
 // Roll weight for each race – higher weight means more likely to roll.
@@ -30,11 +30,13 @@ const RACE_WEIGHTS = {
   DragonBorn: 0.5,
 };
 
+// Pre-computed total weight for rollRandomRace (RACE_WEIGHTS is constant).
+const RACE_WEIGHTS_TOTAL = Object.values(RACE_WEIGHTS).reduce((sum, w) => sum + w, 0);
+
 // Returns a weighted-random race name; rarer races have lower probability.
 function rollRandomRace() {
   const entries = Object.entries(RACE_WEIGHTS);
-  const total = entries.reduce((sum, [, w]) => sum + w, 0);
-  let roll = Math.random() * total;
+  let roll = Math.random() * RACE_WEIGHTS_TOTAL;
   for (const [name, weight] of entries) {
     roll -= weight;
     if (roll <= 0) return name;
@@ -549,5 +551,5 @@ const CRAFTING_RECIPES = [
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, rollRandomRace, getRerollDropChance };
+  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance };
 }
