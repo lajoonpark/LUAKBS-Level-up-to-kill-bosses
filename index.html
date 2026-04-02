@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LUAKBS – Level Up to Kill Bosses</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -21,32 +24,32 @@
       <span>Lv. <span id="player-level">1</span></span>
     </div>
 
-    <div id="exp-bar-wrap"><div id="exp-bar"></div></div>
-    <div id="exp-label">EXP: 0 / 100</div>
+    <div id="exp-bar-wrap"><div id="exp-bar"></div><span id="exp-label">EXP: 0 / 100</span></div>
 
-    <div id="player-hp-bar-wrap"><div id="player-hp-bar"></div></div>
-    <div id="player-hp-label">HP: 50 / 50</div>
+    <div id="player-hp-bar-wrap"><div id="player-hp-bar"></div><span id="player-hp-label">HP: 50 / 50</span></div>
     <div id="regen-status"></div>
 
-    <div class="stat-row" style="margin-top:10px">
-      <span>Strength</span>
+    <div id="stats-group">
+    <div class="stat-row">
+      <span>⚔ Strength</span>
       <span id="stat-strength">5</span>
       <button class="stat-alloc-btn" data-stat="strength">+</button>
     </div>
     <div class="stat-row">
-      <span>Vitality</span>
+      <span>❤ Vitality</span>
       <span id="stat-vitality">5</span>
       <button class="stat-alloc-btn" data-stat="vitality">+</button>
     </div>
     <div class="stat-row">
-      <span>Dexterity</span>
+      <span>💨 Dexterity</span>
       <span id="stat-dexterity">5</span>
       <button class="stat-alloc-btn" data-stat="dexterity">+</button>
     </div>
     <div class="stat-row">
-      <span>Luck</span>
+      <span>🍀 Luck</span>
       <span id="stat-luck">5</span>
       <button class="stat-alloc-btn" data-stat="luck">+</button>
+    </div>
     </div>
 
     <div id="stat-points-row">Stat Points: <strong id="stat-points">0</strong></div>
@@ -141,6 +144,8 @@
   <div id="enemy-panel" class="panel">
     <h2>Combat</h2>
 
+    <div id="enemy-portrait" class="enemy-portrait"></div>
+
     <div id="enemy-info">
       <div id="enemy-name">Slime</div>
       <div id="enemy-hp-label">HP: 30 / 30</div>
@@ -201,6 +206,19 @@
 // ============================================================
 //  UI Controller
 // ============================================================
+
+// ── Enemy portrait map ────────────────────────────────────────
+const ENEMY_PORTRAITS = {
+  'Slime':       '🐌',
+  'Goblin':      '👺',
+  'Skeleton':    '💀',
+  'Orc':         '👹',
+  'Troll':       '🧌',
+  'Dark Knight': '⚔️',
+  'Dragon Boss': '🐉',
+};
+
+const ENEMY_TIERS = ['tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss'];
 
 // ── Game state ──────────────────────────────────────────────
 const player      = new Player('Hero');
@@ -286,6 +304,7 @@ function refreshPlayerUI() {
 
   document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
     btn.disabled = player.statPoints <= 0;
+    btn.classList.toggle('active-alloc', player.statPoints > 0);
   });
 
   timingBar.setSpeedForLevel(player.level);
@@ -304,6 +323,9 @@ function refreshEnemyUI() {
   if (hpPct < 25) elEnemyHpBar.style.background = 'linear-gradient(90deg,#881111,#cc2222)';
   else if (hpPct < 50) elEnemyHpBar.style.background = 'linear-gradient(90deg,#994400,#cc7700)';
   else elEnemyHpBar.style.background = 'linear-gradient(90deg,#cc3333,#ff6666)';
+
+  const portrait = document.getElementById('enemy-portrait');
+  if (portrait) portrait.textContent = ENEMY_PORTRAITS[currentEnemy.name] || '👾';
 }
 
 // ── Player HP / regen UI ──────────────────────────────────────
@@ -317,6 +339,7 @@ function refreshPlayerHpUI() {
   if (pct < 25)      bar.style.background = 'linear-gradient(90deg,#881111,#cc2222)';
   else if (pct < 50) bar.style.background = 'linear-gradient(90deg,#994400,#cc7700)';
   else               bar.style.background = 'linear-gradient(90deg,#226622,#44aa44)';
+  bar.classList.toggle('hp-critical', pct < 30);
 
   document.getElementById('player-hp-label').textContent = `HP: ${curHp} / ${maxHp}`;
 
@@ -346,7 +369,7 @@ function handlePlayerDeath() {
 // ── Combat log hook ───────────────────────────────────────────
 function onGameLog(msg, type) {
   const div = document.createElement('div');
-  div.className = 'log-entry';
+  div.className = 'log-entry log-entry-new';
   if (type) {
     div.classList.add(type);
   } else if (msg.includes('LEVEL UP')) {
@@ -482,10 +505,13 @@ function buildEnemyList() {
   list.innerHTML = '';
   ENEMIES.forEach((enemy, i) => {
     const card = document.createElement('div');
-    card.className = 'enemy-card';
+    const tierClass = ENEMY_TIERS[i] || 'tier-hard';
+    card.className = `enemy-card ${tierClass}`;
     const hpPct  = Math.round(enemy.hp / enemy.maxHp * 100);
     const damaged = enemy.hp < enemy.maxHp;
+    const portrait = ENEMY_PORTRAITS[enemy.name] || '👾';
     card.innerHTML =
+      `<div class="enemy-card-portrait">${portrait}</div>` +
       `<div class="enemy-card-name">${enemy.name}</div>` +
       `<div class="enemy-card-stats">` +
         `❤ ${enemy.hp}/${enemy.maxHp} &nbsp;|&nbsp; ⚔ DMG ${enemy.damage}` +
@@ -609,6 +635,12 @@ function enemyAttack() {
 // Player attacks the current enemy (called on Attack button press)
 function playerAttack() {
   if (battleOver || missPenalty) return;
+
+  // Flash the timing bar on click
+  const barWrap = document.getElementById('timing-bar-wrap');
+  barWrap.classList.remove('clicked');
+  void barWrap.offsetWidth;
+  barWrap.classList.add('clicked');
 
   const result = timingBar.attackEnemyWithTiming(player, currentEnemy);
   refreshPlayerUI();
