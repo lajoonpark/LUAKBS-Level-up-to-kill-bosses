@@ -346,6 +346,129 @@ h1 {
 }
 .btn-secondary:hover { background: linear-gradient(135deg, #3a6655, #4a8877); }
 
+/* ── Combat stats sub-section ── */
+#combat-stats-section {
+  margin-top: 12px;
+  border-top: 1px solid #2e2e5e;
+  padding-top: 8px;
+}
+
+#combat-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+#combat-stats-header h3 {
+  font-size: 0.8rem;
+  color: #a0c0ff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#btn-stats-info {
+  background: #2a2a5a;
+  border: 1px solid #5555aa;
+  color: #a0c0ff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+#btn-stats-info:hover { background: #3a3a8a; }
+
+.cstat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  margin: 3px 0;
+  color: #ccc;
+}
+.cstat-row span:last-child {
+  color: #88eeff;
+  font-weight: bold;
+  min-width: 48px;
+  text-align: right;
+}
+
+/* Bump animation when a stat value changes */
+@keyframes stat-bump {
+  0%   { color: #88ffaa; transform: scale(1.2); }
+  100% { color: #88eeff; transform: scale(1); }
+}
+.stat-bump { animation: stat-bump 0.5s ease-out forwards; }
+
+/* ── Stats info modal ── */
+#stats-info-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+#stats-info-modal.open { display: flex; }
+
+#stats-info-content {
+  background: #14142a;
+  border: 1px solid #4444aa;
+  border-radius: 10px;
+  padding: 18px 20px;
+  max-width: 340px;
+  width: 90%;
+}
+
+#stats-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #2e2e5e;
+  padding-bottom: 8px;
+}
+
+#stats-info-header h3 {
+  font-size: 1rem;
+  color: #a0c0ff;
+  letter-spacing: 1px;
+}
+
+#btn-close-stats-info {
+  background: transparent;
+  border: 1px solid #4a4a8a;
+  color: #aaa;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+#btn-close-stats-info:hover { background: #2a2a5a; color: #fff; }
+
+.stat-info-entry {
+  margin: 10px 0;
+}
+.stat-info-name {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: #f0c040;
+  margin-bottom: 2px;
+}
+.stat-info-desc {
+  font-size: 0.8rem;
+  color: #aaa;
+  line-height: 1.4;
+}
+
 /* ── Inventory (inside stats panel) ── */
 #inventory-section {
   margin-top: 12px;
