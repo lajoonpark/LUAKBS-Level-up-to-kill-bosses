@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, ENEMIES, WEAPONS } = require('./game.js');
+const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -123,6 +123,98 @@ assert(dmgMiss === 0, 'miss (multiplier 0) deals 0 damage');
 section('Sample data');
 assert(ENEMIES.length >= 3,      'at least 3 sample enemies');
 assert(WEAPONS.length >= 3,      'at least 3 sample weapons');
+assert(Array.isArray(CRAFTING_RECIPES) && CRAFTING_RECIPES.length >= 1, 'CRAFTING_RECIPES defined');
+
+// ─────────────────────────────────────────────
+//  Enemy drop tables
+// ─────────────────────────────────────────────
+section('Enemy drop tables');
+const slime = ENEMIES[0]; // Slime
+assert(Array.isArray(slime.dropTable),              'Slime has a dropTable');
+assert(slime.dropTable.length >= 1,                 'Slime drop table has entries');
+const drop = slime.dropTable[0];
+assert(typeof drop.itemName   === 'string',         'drop has itemName');
+assert(typeof drop.dropChance === 'number',         'drop has dropChance');
+assert(typeof drop.minAmount  === 'number',         'drop has minAmount');
+assert(typeof drop.maxAmount  === 'number',         'drop has maxAmount');
+assert(drop.minAmount <= drop.maxAmount,            'minAmount <= maxAmount');
+
+// ─────────────────────────────────────────────
+//  addItemToInventory
+// ─────────────────────────────────────────────
+section('addItemToInventory');
+const pi = new Player();
+pi.addItemToInventory('Iron Ore', 3);
+assert(pi.inventory['Iron Ore'] === 3,              'adds new item to inventory');
+pi.addItemToInventory('Iron Ore', 2);
+assert(pi.inventory['Iron Ore'] === 5,              'stacks quantities');
+pi.addItemToInventory('Wood', 1);
+assert(pi.inventory['Wood'] === 1,                  'tracks multiple item types');
+
+// ─────────────────────────────────────────────
+//  rollItemDrops
+// ─────────────────────────────────────────────
+section('rollItemDrops');
+const pr = new Player();
+// Enemy with guaranteed drops (dropChance 1.0)
+const guaranteedEnemy = new Enemy('GDummy', 10, 1, 0, 0, 0, [
+  { itemName: 'Test Item', dropChance: 1.0, minAmount: 2, maxAmount: 2 },
+]);
+const drops = pr.rollItemDrops(guaranteedEnemy);
+assert(drops.length === 1,                                     'guaranteed drop returned');
+assert(drops[0].itemName === 'Test Item',                      'drop item name correct');
+assert(drops[0].amount   === 2,                                'drop amount correct');
+assert(pr.inventory['Test Item'] === 2,                        'item added to inventory');
+
+// Enemy with no drops
+const noDropEnemy = new Enemy('NDummy', 10, 1, 0, 0, 0, []);
+const noDrops = pr.rollItemDrops(noDropEnemy);
+assert(noDrops.length === 0,                                   'empty drop table returns []');
+
+// ─────────────────────────────────────────────
+//  hasMaterials
+// ─────────────────────────────────────────────
+section('hasMaterials');
+const ph = new Player();
+ph.addItemToInventory('Iron Ore', 5);
+ph.addItemToInventory('Wood', 2);
+ph.gold = 100;
+const recipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
+assert(recipe !== undefined,                                   'Iron Sword recipe exists');
+assert(ph.hasMaterials(recipe) === true,                       'hasMaterials true when sufficient');
+ph.gold = 50; // not enough gold
+assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient gold');
+ph.gold = 100;
+ph.inventory['Iron Ore'] = 2; // not enough ore
+assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient item');
+
+// ─────────────────────────────────────────────
+//  craftItem
+// ─────────────────────────────────────────────
+section('craftItem');
+const pc = new Player();
+pc.addItemToInventory('Iron Ore', 5);
+pc.addItemToInventory('Wood', 2);
+pc.gold = 200;
+const ironRecipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
+const crafted = pc.craftItem(ironRecipe);
+assert(crafted instanceof Weapon,                              'craftItem returns a Weapon');
+assert(crafted.name === 'Iron Sword',                         'crafted weapon has correct name');
+assert(crafted.baseDamage === ironRecipe.weapon.baseDamage,   'crafted weapon has correct damage');
+assert(crafted.rarity === ironRecipe.weapon.rarity,           'crafted weapon has correct rarity');
+assert(pc.craftedWeapons.length === 1,                        'weapon added to craftedWeapons');
+assert((pc.inventory['Iron Ore'] || 0) === 0,                 'materials deducted from inventory');
+assert((pc.inventory['Wood'] || 0) === 0,                     'wood deducted from inventory');
+assert(pc.gold === 100,                                       'gold deducted');
+
+// Cannot craft without materials
+const failCraft = pc.craftItem(ironRecipe);
+assert(failCraft === null,                                     'craftItem returns null when missing materials');
+
+// Damage formula uses crafted weapon
+pc.equipWeapon(crafted);
+assert(pc.baseDamage() === crafted.baseDamage + pc.stats.strength * 2,
+  'damage = weaponDamage + strength*2 for crafted weapon');
 
 // ─────────────────────────────────────────────
 //  TimingBar (requires manual override of perf)

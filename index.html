@@ -53,6 +53,11 @@
     </div>
 
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
+
+    <div id="inventory-section">
+      <h3>🎒 Inventory</h3>
+      <div id="inventory-list"><span class="inv-empty">No items yet</span></div>
+    </div>
   </div>
 
   <!-- ── Enemy Selection Panel (full width) ── -->
@@ -103,6 +108,12 @@
   <div id="shop-panel" class="panel">
     <h2>⚒ Weapons (click to equip)</h2>
     <div id="weapon-list"></div>
+  </div>
+
+  <!-- ── Crafting Menu (full width) ── -->
+  <div id="crafting-panel" class="panel">
+    <h2>🔨 Crafting</h2>
+    <div id="crafting-list"></div>
   </div>
 
   <!-- ── Combat Log (full width) ── -->
@@ -201,6 +212,8 @@ function refreshPlayerUI() {
   });
 
   timingBar.setSpeedForLevel(player.level);
+  displayInventory();
+  displayCraftingMenu();
 }
 
 function refreshEnemyUI() {
@@ -215,12 +228,18 @@ function refreshEnemyUI() {
 }
 
 // ── Combat log hook ───────────────────────────────────────────
-function onGameLog(msg) {
+function onGameLog(msg, type) {
   const div = document.createElement('div');
   div.className = 'log-entry';
-  if (msg.includes('LEVEL UP'))   div.classList.add('level-up');
-  else if (msg.includes('CRIT'))  div.classList.add('crit');
-  else if (msg.includes('💎') || msg.includes('gold')) div.classList.add('highlight');
+  if (type) {
+    div.classList.add(type);
+  } else if (msg.includes('LEVEL UP')) {
+    div.classList.add('level-up');
+  } else if (msg.includes('CRIT')) {
+    div.classList.add('crit');
+  } else if (msg.includes('💎') || msg.includes('gold')) {
+    div.classList.add('highlight');
+  }
   div.textContent = msg;
   elLogBox.appendChild(div);
   elLogBox.scrollTop = elLogBox.scrollHeight;
@@ -230,11 +249,15 @@ function onGameLog(msg) {
 function buildWeaponShop() {
   const list = document.getElementById('weapon-list');
   list.innerHTML = '';
-  WEAPONS.forEach((w) => {
+  const allWeapons = [...WEAPONS, ...player.craftedWeapons];
+  allWeapons.forEach((w) => {
     const card = document.createElement('div');
     card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '');
+    const craftedBadge = player.craftedWeapons.includes(w)
+      ? `<div class="crafted-badge">crafted</div>` : '';
     card.innerHTML =
       `<div class="rarity ${w.rarity}">${w.rarity}</div>` +
+      craftedBadge +
       `<div>${w.name}</div>` +
       `<div style="color:#888;font-size:0.78rem">${w.baseDamage} base dmg</div>`;
     card.addEventListener('click', () => {
@@ -242,6 +265,69 @@ function buildWeaponShop() {
       buildWeaponShop();
       refreshPlayerUI();
     });
+    list.appendChild(card);
+  });
+}
+
+// ── Inventory display ─────────────────────────────────────────
+function displayInventory() {
+  const list = document.getElementById('inventory-list');
+  list.innerHTML = '';
+  const items = Object.entries(player.inventory);
+  if (items.length === 0) {
+    list.innerHTML = '<span class="inv-empty">No items yet</span>';
+    return;
+  }
+  items.forEach(([itemName, qty]) => {
+    const span = document.createElement('span');
+    span.className = 'inv-item';
+    span.textContent = `${itemName} ×${qty}`;
+    list.appendChild(span);
+  });
+}
+
+// ── Crafting menu ─────────────────────────────────────────────
+function displayCraftingMenu() {
+  const list = document.getElementById('crafting-list');
+  list.innerHTML = '';
+  CRAFTING_RECIPES.forEach((recipe) => {
+    const canCraft = player.hasMaterials(recipe);
+    const card = document.createElement('div');
+    card.className = 'craft-card' + (canCraft ? ' craftable' : '');
+
+    let matsHtml = recipe.materials.map(mat => {
+      const have = player.inventory[mat.itemName] || 0;
+      const enough = have >= mat.amount;
+      return `<span class="mat${enough ? ' mat-ok' : ' mat-missing'}">${mat.itemName}: ${have}/${mat.amount}</span>`;
+    }).join('');
+
+    let costHtml = '';
+    if (recipe.goldCost > 0) {
+      const enoughGold = player.gold >= recipe.goldCost;
+      costHtml += `<span class="mat${enoughGold ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold}/${recipe.goldCost} gold</span>`;
+    }
+    if (recipe.gemsCost > 0) {
+      const enoughGems = player.gems >= recipe.gemsCost;
+      costHtml += `<span class="mat${enoughGems ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}/${recipe.gemsCost} gems</span>`;
+    }
+
+    card.innerHTML =
+      `<div class="craft-name">` +
+        `<span class="rarity ${recipe.weapon.rarity}">${recipe.weapon.rarity}</span> ` +
+        `${recipe.weapon.name} <span class="craft-dmg">(${recipe.weapon.baseDamage} dmg)</span>` +
+      `</div>` +
+      `<div class="craft-mats">${matsHtml}${costHtml}</div>` +
+      `<button class="btn craft-btn" ${canCraft ? '' : 'disabled'}>🔨 Craft</button>`;
+
+    card.querySelector('.craft-btn').addEventListener('click', () => {
+      const crafted = player.craftItem(recipe);
+      if (crafted) {
+        buildWeaponShop();
+        refreshPlayerUI();
+        displayCraftingMenu();
+      }
+    });
+
     list.appendChild(card);
   });
 }
@@ -308,6 +394,9 @@ function endFight() {
     player.gems++;
     onGameLog(`💎 Gem dropped! Total gems: ${player.gems}`);
   }
+
+  // Item drops
+  player.rollItemDrops(currentEnemy);
 
   onGameLog(`🏆 ${currentEnemy.name} defeated!`);
   refreshPlayerUI();
