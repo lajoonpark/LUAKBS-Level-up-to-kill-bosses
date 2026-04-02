@@ -113,10 +113,9 @@ assert(target.hp < target.maxHp, 'enemy HP reduced after attack');
 const target2 = new Enemy('Dummy2', 1000, 5, 0, 0, 0);
 const dmgHigh = attacker.attackEnemy(target2, 2.0); // perfect hit
 const target3 = new Enemy('Dummy3', 1000, 5, 0, 0, 0);
-const dmgLow  = attacker.attackEnemy(target3, 0.5); // miss
-// (crits are random so we can only assert non-negative ordering in aggregate;
-//  just assert positive damage)
-assert(dmgHigh >= 1 && dmgLow >= 1, 'timing multiplier variants deal >= 1 damage');
+const dmgMiss  = attacker.attackEnemy(target3, 0.0); // miss → 0 damage
+assert(dmgHigh >= 1, 'perfect hit deals >= 1 damage');
+assert(dmgMiss === 0, 'miss (multiplier 0) deals 0 damage');
 
 // ─────────────────────────────────────────────
 //  Sample data
@@ -153,7 +152,7 @@ assert(r3.quality === 'bad' && r3.multiplier === 1.0, 'edge of hit zone → bad 
 
 // Miss
 const r4 = tb.calculateTimingMultiplier(10);
-assert(r4.quality === 'miss' && r4.multiplier === 0.5, 'outside zone → miss x0.5');
+assert(r4.quality === 'miss' && r4.multiplier === 0, 'outside zone → miss x0 (no damage)');
 
 // updateMarkerPosition
 tb.position  = 95;

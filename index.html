@@ -55,6 +55,12 @@
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
   </div>
 
+  <!-- ── Enemy Selection Panel (full width) ── -->
+  <div id="enemy-select-panel" class="panel" style="grid-column: 1 / -1; display: none;">
+    <h2>⚔ Choose Your Enemy</h2>
+    <div id="enemy-list"></div>
+  </div>
+
   <!-- ── Right: Enemy & Combat ── -->
   <div id="enemy-panel" class="panel">
     <h2>Combat</h2>
@@ -86,10 +92,11 @@
         <span>0</span><span>Miss</span><span>Hit Zone</span><span>Miss</span><span>100</span>
       </div>
       <div id="timing-result"></div>
+      <div id="damage-display"></div>
     </div>
 
     <button id="btn-attack" class="btn">⚔ Attack!</button>
-    <button id="btn-next-enemy" class="btn" style="display:none">▶ Next Enemy</button>
+    <button id="btn-change-enemy" class="btn btn-secondary">🔀 Change Enemy</button>
   </div>
 
   <!-- ── Weapon Shop (full width) ── -->
@@ -114,10 +121,10 @@
 // ============================================================
 
 // ── Game state ──────────────────────────────────────────────
-const player  = new Player('Hero');
-let enemyIndex = 0;
-let currentEnemy = null;
-let battleOver   = false;
+const player      = new Player('Hero');
+let currentEnemy  = null;
+let battleOver    = false;
+let missPenalty   = false;  // true while miss-delay is active
 
 // ── DOM refs ─────────────────────────────────────────────────
 const elLevel      = document.getElementById('player-level');
@@ -132,12 +139,16 @@ const elEnemyName  = document.getElementById('enemy-name');
 const elEnemyHpLbl = document.getElementById('enemy-hp-label');
 const elEnemyHpBar = document.getElementById('enemy-hp-bar');
 
-const elTimingResult = document.getElementById('timing-result');
-const elBtnAttack    = document.getElementById('btn-attack');
-const elBtnNext      = document.getElementById('btn-next-enemy');
+const elTimingResult  = document.getElementById('timing-result');
+const elDamageDisplay = document.getElementById('damage-display');
+const elBtnAttack     = document.getElementById('btn-attack');
+const elBtnChange     = document.getElementById('btn-change-enemy');
 
 const elLogBox     = document.getElementById('log-box');
 const elMarker     = document.getElementById('marker');
+
+const elEnemyPanel      = document.getElementById('enemy-panel');
+const elEnemySelectPanel = document.getElementById('enemy-select-panel');
 
 // ── Timing bar setup ─────────────────────────────────────────
 const timingBar = new TimingBar({ speed: 50 });
@@ -148,18 +159,16 @@ timingBar.onTick = (pos) => {
 
 timingBar.onHit = (result) => {
   const colors = { perfect: '#44ccff', good: '#66ff66', bad: '#ffdd44', miss: '#ff6666' };
-  elTimingResult.textContent  = result.label;
-  elTimingResult.style.color  = colors[result.quality];
+  elTimingResult.textContent = result.label;
+  elTimingResult.style.color = colors[result.quality];
 };
 
 // ── Initialise hit-zone visuals ──────────────────────────────
 (function initHitZones() {
-  const tb     = timingBar;
-  const wrapW  = 100; // percentage-based
+  const tb = timingBar;
 
   document.getElementById('hit-zone-bad').style.left  = tb.hitZoneMin + '%';
-  document.getElementById('hit-zone-bad').style.width =
-    (tb.hitZoneMax - tb.hitZoneMin) + '%';
+  document.getElementById('hit-zone-bad').style.width = (tb.hitZoneMax - tb.hitZoneMin) + '%';
 
   const gMin = (tb.hitZoneMin + tb.hitZoneMax) / 2 - tb.goodRadius;
   const gMax = (tb.hitZoneMin + tb.hitZoneMax) / 2 + tb.goodRadius;
@@ -183,17 +192,14 @@ function refreshPlayerUI() {
   elGems.textContent       = player.gems;
   elWeaponDisp.textContent = `🗡 ${player.weapon.name} (${player.weapon.rarity})`;
 
-  // Update stat values
   for (const stat of ['strength', 'vitality', 'dexterity', 'luck']) {
     document.getElementById('stat-' + stat).textContent = player.stats[stat];
   }
 
-  // Enable/disable allocate buttons
   document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
     btn.disabled = player.statPoints <= 0;
   });
 
-  // Adjust marker speed with level
   timingBar.setSpeedForLevel(player.level);
 }
 
@@ -224,7 +230,7 @@ function onGameLog(msg) {
 function buildWeaponShop() {
   const list = document.getElementById('weapon-list');
   list.innerHTML = '';
-  WEAPONS.forEach((w, i) => {
+  WEAPONS.forEach((w) => {
     const card = document.createElement('div');
     card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '');
     card.innerHTML =
@@ -240,48 +246,113 @@ function buildWeaponShop() {
   });
 }
 
-// ── Load a new enemy ─────────────────────────────────────────
-function loadEnemy(index) {
-  currentEnemy = ENEMIES[index % ENEMIES.length];
-  currentEnemy.reset();
-  battleOver = false;
+// ── Enemy selection ──────────────────────────────────────────
+function displayEnemyList() {
+  elEnemySelectPanel.style.display = 'block';
+  elEnemyPanel.style.display       = 'none';
+  buildEnemyList();
+}
+
+function buildEnemyList() {
+  const list = document.getElementById('enemy-list');
+  list.innerHTML = '';
+  ENEMIES.forEach((enemy, i) => {
+    const card = document.createElement('div');
+    card.className = 'enemy-card';
+    const hpPct  = Math.round(enemy.hp / enemy.maxHp * 100);
+    const damaged = enemy.hp < enemy.maxHp;
+    card.innerHTML =
+      `<div class="enemy-card-name">${enemy.name}</div>` +
+      `<div class="enemy-card-stats">` +
+        `❤ ${enemy.hp}/${enemy.maxHp} &nbsp;|&nbsp; ⚔ DMG ${enemy.damage}` +
+      `</div>` +
+      `<div class="enemy-card-rewards">` +
+        `EXP +${enemy.expReward} &nbsp; 🪙 +${enemy.goldReward} &nbsp; 💎 ${Math.round(enemy.gemDropChance * 100)}%` +
+      `</div>` +
+      (damaged
+        ? `<div class="enemy-card-hp-wrap"><div class="enemy-card-hp-bar" style="width:${hpPct}%"></div></div>`
+        : '');
+    card.addEventListener('click', () => selectEnemy(i));
+    list.appendChild(card);
+  });
+}
+
+function selectEnemy(enemyId) {
+  startFight(ENEMIES[enemyId]);
+}
+
+function startFight(enemy) {
+  currentEnemy = enemy;
+  battleOver   = false;
+  missPenalty  = false;
   elBtnAttack.disabled = false;
-  elBtnNext.style.display = 'none';
+  elTimingResult.textContent  = '';
+  elDamageDisplay.textContent = '';
+  elEnemySelectPanel.style.display = 'none';
+  elEnemyPanel.style.display       = 'block';
   refreshEnemyUI();
-  onGameLog(`--- New enemy: ${currentEnemy.name} ---`);
+  onGameLog(`--- Fighting: ${currentEnemy.name} ---`);
+}
+
+function endFight() {
+  battleOver = true;
+  elBtnAttack.disabled = true;
+
+  // Collect rewards
+  player.gainExp(currentEnemy.expReward);
+  player.gold += currentEnemy.goldReward;
+  onGameLog(`+${currentEnemy.goldReward} gold! Total: ${player.gold}`);
+
+  const gemChance = Math.min(currentEnemy.gemDropChance + player.stats.luck * 0.005, 0.9);
+  if (Math.random() < gemChance) {
+    player.gems++;
+    onGameLog(`💎 Gem dropped! Total gems: ${player.gems}`);
+  }
+
+  onGameLog(`🏆 ${currentEnemy.name} defeated!`);
+  refreshPlayerUI();
+  refreshEnemyUI();
+
+  // Auto-restart the fight after a short pause
+  setTimeout(() => {
+    currentEnemy.reset();
+    battleOver  = false;
+    missPenalty = false;
+    elBtnAttack.disabled = false;
+    elTimingResult.textContent  = '';
+    elDamageDisplay.textContent = '';
+    refreshEnemyUI();
+    onGameLog(`--- ${currentEnemy.name} respawned ---`);
+  }, 1500);
 }
 
 // ── Attack button ─────────────────────────────────────────────
 elBtnAttack.addEventListener('click', () => {
-  if (battleOver) return;
+  if (battleOver || missPenalty) return;
 
-  // Timing attack
   const result = timingBar.attackEnemyWithTiming(player, currentEnemy);
   refreshPlayerUI();
   refreshEnemyUI();
 
-  if (!currentEnemy.isAlive()) {
-    // Enemy defeated
-    battleOver = true;
+  // Show damage feedback
+  if (result.quality === 'miss') {
+    elDamageDisplay.textContent = '0 damage';
+    elDamageDisplay.style.color = '#ff6666';
+    // Miss penalty: brief delay before next attack
+    missPenalty = true;
     elBtnAttack.disabled = true;
-    elBtnNext.style.display = 'block';
+    setTimeout(() => {
+      missPenalty = false;
+      if (!battleOver) elBtnAttack.disabled = false;
+    }, 800);
+  } else {
+    elDamageDisplay.textContent = `${result.damage} damage`;
+    const dmgColors = { perfect: '#44ccff', good: '#66ff66', bad: '#ffdd44' };
+    elDamageDisplay.style.color = dmgColors[result.quality] || '#ffffff';
+  }
 
-    // Collect rewards
-    player.gainExp(currentEnemy.expReward);
-    player.gold += currentEnemy.goldReward;
-    onGameLog(`+${currentEnemy.goldReward} gold! Total: ${player.gold}`);
-
-    const gemChance = Math.min(
-      currentEnemy.gemDropChance + player.stats.luck * 0.005, 0.9
-    );
-    if (Math.random() < gemChance) {
-      player.gems++;
-      onGameLog(`💎 Gem dropped! Total gems: ${player.gems}`);
-    }
-
-    onGameLog(`🏆 ${currentEnemy.name} defeated!`);
-    refreshPlayerUI();
-    refreshEnemyUI();
+  if (!currentEnemy.isAlive()) {
+    endFight();
   }
 });
 
@@ -293,10 +364,9 @@ document.getElementById('timing-bar-wrap').addEventListener('keydown', (e) => {
   }
 });
 
-// ── Next enemy button ─────────────────────────────────────────
-elBtnNext.addEventListener('click', () => {
-  enemyIndex++;
-  loadEnemy(enemyIndex);
+// ── Change enemy button ───────────────────────────────────────
+elBtnChange.addEventListener('click', () => {
+  displayEnemyList();
 });
 
 // ── Stat allocation buttons ───────────────────────────────────
@@ -309,9 +379,9 @@ document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
 
 // ── Boot ─────────────────────────────────────────────────────
 buildWeaponShop();
-loadEnemy(0);
 refreshPlayerUI();
 timingBar.start();
+displayEnemyList();
 </script>
 
 </body>

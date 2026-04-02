@@ -97,7 +97,7 @@ class TimingBar {
       multiplier = 1.0;
     } else {
       quality    = 'miss';
-      multiplier = 0.5;
+      multiplier = 0;
     }
 
     return {
@@ -122,10 +122,10 @@ class TimingBar {
 }
 
 TimingBar.LABELS = {
-  perfect : '⭐ Perfect Hit!',
-  good    : '✅ Good Hit',
-  bad     : '🟡 Hit',
-  miss    : '❌ Miss',
+  perfect : 'Perfect!',
+  good    : 'Good!',
+  bad     : 'Hit',
+  miss    : 'Miss!',
 };
 
 // Export for Node.js or browser

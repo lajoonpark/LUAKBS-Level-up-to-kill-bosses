@@ -123,6 +123,10 @@ class Player {
 
   // ── Attack an enemy (returns damage dealt) ─────────────────
   attackEnemy(enemy, timingMultiplier = 1.0) {
+    if (timingMultiplier === 0) {
+      this._addLog(`You missed ${enemy.name}!`);
+      return 0;
+    }
     let damage = this.baseDamage() * timingMultiplier;
     const isCrit = Math.random() < this.critChance();
     if (isCrit) {
@@ -189,8 +193,10 @@ class Player {
 const ENEMIES = [
   new Enemy('Slime',        30,  5,  20,  10, 0.05),
   new Enemy('Goblin',       55, 10,  45,  25, 0.10),
+  new Enemy('Skeleton',     80, 14,  70,  45, 0.12),
   new Enemy('Orc',         100, 18,  90,  60, 0.15),
   new Enemy('Troll',       180, 28, 170, 120, 0.20),
+  new Enemy('Dark Knight', 250, 40, 250, 180, 0.30),
   new Enemy('Dragon Boss', 500, 60, 600, 400, 0.50),
 ];
 
