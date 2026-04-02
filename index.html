@@ -476,16 +476,12 @@ function endFight() {
   player.rollItemDrops(currentEnemy);
 
   onGameLog(`🏆 ${currentEnemy.name} defeated!`);
+  onGameLog(`Click "Change Enemy" to pick your next fight.`);
   elTimingResult.textContent = '🏆 Victory!';
   elTimingResult.style.color = '#f0c040';
+  currentEnemy.reset();
   refreshPlayerUI();
   updateHealthBars();
-
-  // Return to enemy selection after a short pause
-  setTimeout(() => {
-    currentEnemy.reset();
-    displayEnemyList();
-  }, 1500);
 }
 
 // ── Combat functions ──────────────────────────────────────────
