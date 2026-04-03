@@ -566,7 +566,8 @@ h1 {
   margin-bottom: 4px;
 }
 .enemy-card-stats  { color: #aaa; font-size: 0.8rem; margin-bottom: 2px; }
-.enemy-card-rewards { color: #f0c040; font-size: 0.75rem; margin-bottom: 6px; }
+.enemy-card-rewards { color: #f0c040; font-size: 0.75rem; margin-bottom: 4px; }
+.enemy-card-drops   { color: #88bbdd; font-size: 0.72rem; margin-bottom: 6px; }
 
 .enemy-card-hp-wrap {
   background: #1a1a2a;
@@ -877,6 +878,7 @@ h1 {
   .stat-info-desc,
   .enemy-card-stats,
   .enemy-card-rewards,
+  .enemy-card-drops,
   .craft-dmg,
   .mat { font-size: 0.8rem; }
 }

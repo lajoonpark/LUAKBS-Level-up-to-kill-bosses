@@ -517,7 +517,7 @@ const CRAFTING_RECIPES = [
       { itemName: 'Iron Ore', amount: 5 },
       { itemName: 'Wood',     amount: 2 },
     ],
-    goldCost: 100,
+    goldCost: 300,
     gemsCost: 0,
   },
   {
@@ -527,7 +527,7 @@ const CRAFTING_RECIPES = [
       { itemName: 'Bone Fragment', amount: 4 },
       { itemName: 'Iron Ore',      amount: 3 },
     ],
-    goldCost: 0,
+    goldCost: 50,
     gemsCost: 0,
   },
   {
@@ -537,7 +537,7 @@ const CRAFTING_RECIPES = [
       { itemName: 'Troll Hide', amount: 3 },
       { itemName: 'Iron Ore',   amount: 5 },
     ],
-    goldCost: 200,
+    goldCost: 500,
     gemsCost: 0,
   },
   {
@@ -547,7 +547,7 @@ const CRAFTING_RECIPES = [
       { itemName: 'Dark Steel', amount: 4 },
       { itemName: 'Troll Hide', amount: 2 },
     ],
-    goldCost: 300,
+    goldCost: 800,
     gemsCost: 0,
   },
   {
@@ -557,7 +557,7 @@ const CRAFTING_RECIPES = [
       { itemName: 'Dragon Scale', amount: 3 },
       { itemName: 'Dark Steel',   amount: 4 },
     ],
-    goldCost: 500,
+    goldCost: 1500,
     gemsCost: 2,
   },
 ];

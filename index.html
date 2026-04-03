@@ -556,6 +556,13 @@ function buildEnemyList() {
       `<div class="enemy-card-rewards">` +
         `EXP +${enemy.expReward} &nbsp; 🪙 +${enemy.goldReward} &nbsp; 💎 ${Math.round(enemy.gemDropChance * 100)}%` +
       `</div>` +
+      (enemy.dropTable && enemy.dropTable.length > 0
+        ? `<div class="enemy-card-drops">📦 ` +
+            enemy.dropTable.map(d =>
+              `${d.itemName} ${Math.round(d.dropChance * 100)}% ×${d.minAmount}–${d.maxAmount}`
+            ).join(' &nbsp;|&nbsp; ') +
+          `</div>`
+        : '') +
       (damaged
         ? `<div class="enemy-card-hp-wrap"><div class="enemy-card-hp-bar" style="width:${hpPct}%"></div></div>`
         : '');

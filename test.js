@@ -187,13 +187,13 @@ section('hasMaterials');
 const ph = new Player();
 ph.addItemToInventory('Iron Ore', 5);
 ph.addItemToInventory('Wood', 2);
-ph.gold = 100;
+ph.gold = 300;
 const recipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
 assert(recipe !== undefined,                                   'Iron Sword recipe exists');
 assert(ph.hasMaterials(recipe) === true,                       'hasMaterials true when sufficient');
 ph.gold = 50; // not enough gold
 assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient gold');
-ph.gold = 100;
+ph.gold = 300;
 ph.inventory['Iron Ore'] = 2; // not enough ore
 assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient item');
 
@@ -204,7 +204,7 @@ section('craftItem');
 const pc = new Player();
 pc.addItemToInventory('Iron Ore', 5);
 pc.addItemToInventory('Wood', 2);
-pc.gold = 200;
+pc.gold = 300;
 const ironRecipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
 const crafted = pc.craftItem(ironRecipe);
 assert(crafted instanceof Weapon,                              'craftItem returns a Weapon');
@@ -214,7 +214,7 @@ assert(crafted.rarity === ironRecipe.weapon.rarity,           'crafted weapon ha
 assert(pc.craftedWeapons.includes(crafted),                   'crafted weapon added to craftedWeapons');
 assert((pc.inventory['Iron Ore'] || 0) === 0,                 'materials deducted from inventory');
 assert((pc.inventory['Wood'] || 0) === 0,                     'wood deducted from inventory');
-assert(pc.gold === 100,                                       'gold deducted');
+assert(pc.gold === 0,                                         'gold deducted');
 
 // Cannot craft without materials
 const failCraft = pc.craftItem(ironRecipe);
@@ -264,7 +264,7 @@ section('craftWeapon');
 const pcr = new Player();
 pcr.addItemToInventory('Iron Ore', 5);
 pcr.addItemToInventory('Wood', 2);
-pcr.gold = 200;
+pcr.gold = 300;
 const ironRecipe2 = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
 const craftedAndEquipped = pcr.craftWeapon(ironRecipe2);
 assert(craftedAndEquipped instanceof Weapon,                   'craftWeapon returns a Weapon');
