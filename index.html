@@ -563,6 +563,17 @@ function buildEnemyList() {
             ).join(' &nbsp;|&nbsp; ') +
           `</div>`
         : '') +
+      (() => {
+        const droppedItems = (enemy.dropTable || []).map(d => d.itemName);
+        const craftableRecipes = CRAFTING_RECIPES.filter(recipe =>
+          recipe.materials.some(mat => droppedItems.includes(mat.itemName))
+        );
+        return craftableRecipes.length > 0
+          ? `<div class="enemy-card-gold">🪙 ` +
+              craftableRecipes.map(r => `${r.weapon.name}: ${r.goldCost}g`).join(' &nbsp;|&nbsp; ') +
+            `</div>`
+          : '';
+      })() +
       (damaged
         ? `<div class="enemy-card-hp-wrap"><div class="enemy-card-hp-bar" style="width:${hpPct}%"></div></div>`
         : '');
