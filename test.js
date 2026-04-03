@@ -589,6 +589,55 @@ pr_clamp.useRaceReroll();
 assert(pr_clamp.currentHp <= pr_clamp.maxHp,               'currentHp clamped to new maxHp after reroll');
 
 // ─────────────────────────────────────────────
+//  applyDeathPenalty
+// ─────────────────────────────────────────────
+section('Player – applyDeathPenalty defaults');
+const pdp = new Player();
+assert(pdp.deathCount === 0,            'deathCount starts at 0');
+assert(Array.isArray(pdp.deathLog),     'deathLog starts as an array');
+assert(pdp.deathLog.length === 0,       'deathLog starts empty');
+
+section('Player – applyDeathPenalty reduces gold by 15%');
+const pdp2 = new Player();
+pdp2.gold = 200;
+const lost = pdp2.applyDeathPenalty('Slime');
+assert(lost === 30,                     'applyDeathPenalty returns gold lost (15% of 200 = 30)');
+assert(pdp2.gold === 170,               'gold reduced to 170 after 15% loss');
+
+section('Player – applyDeathPenalty increments deathCount');
+const pdp3 = new Player();
+pdp3.gold = 100;
+pdp3.applyDeathPenalty('Goblin');
+assert(pdp3.deathCount === 1,           'deathCount is 1 after first death');
+pdp3.gold = 100;
+pdp3.applyDeathPenalty('Goblin');
+assert(pdp3.deathCount === 2,           'deathCount is 2 after second death');
+
+section('Player – applyDeathPenalty records deathLog entry');
+const pdp4 = new Player();
+pdp4.gold = 100;
+pdp4.applyDeathPenalty('Skeleton');
+assert(pdp4.deathLog.length === 1,      'deathLog has one entry after death');
+const entry = pdp4.deathLog[0];
+assert(entry.enemyName === 'Skeleton',  'deathLog entry has correct enemyName');
+assert(entry.level     === 1,           'deathLog entry has correct level');
+assert(entry.goldLost  === 15,          'deathLog entry has correct goldLost');
+assert(typeof entry.timestamp === 'number' && entry.timestamp > 0, 'deathLog entry has a numeric timestamp');
+
+section('Player – applyDeathPenalty gold cannot go below 0');
+const pdp5 = new Player();
+pdp5.gold = 0;
+const lostZero = pdp5.applyDeathPenalty('Orc');
+assert(lostZero === 0,                  'goldLost is 0 when player has no gold');
+assert(pdp5.gold === 0,                 'gold stays at 0 when player has no gold');
+
+section('Player – applyDeathPenalty uses default enemy name');
+const pdp6 = new Player();
+pdp6.gold = 50;
+pdp6.applyDeathPenalty();
+assert(pdp6.deathLog[0].enemyName === 'Unknown', 'defaults enemyName to Unknown when omitted');
+
+// ─────────────────────────────────────────────
 //  Summary
 // ─────────────────────────────────────────────
 console.log(`\n════════════════════════════════════════════`);

@@ -134,6 +134,20 @@
   </div>
   </div>
 
+  <!-- ── Death Screen Modal ── -->
+  <div id="death-screen">
+    <div id="death-screen-content">
+      <div id="death-screen-heading">💀 YOU DIED</div>
+      <div id="death-screen-killer"></div>
+      <div id="death-screen-gold"></div>
+      <div id="death-screen-deaths"></div>
+      <div id="death-screen-buttons">
+        <button id="btn-respawn-same" class="btn">⚔ Fight Again</button>
+        <button id="btn-respawn-camp" class="btn btn-secondary">🏕 Return to Camp</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Enemy Selection Panel (full width) ── -->
   <div id="enemy-select-panel" class="panel" style="grid-column: 1 / -1; display: none;">
     <h2>⚔ Choose Your Enemy</h2>
@@ -227,6 +241,9 @@ const player      = new Player('Hero');
 let currentEnemy  = null;
 let battleOver    = false;
 let missPenalty   = false;  // true while miss-delay is active
+
+// Fraction of maxHp restored on respawn (1.0 = full HP)
+const RESPAWN_HP_FRACTION = 1.0;
 
 // ── DOM refs ─────────────────────────────────────────────────
 const elLevel      = document.getElementById('player-level');
@@ -355,19 +372,35 @@ function refreshPlayerHpUI() {
 function handlePlayerDeath() {
   battleOver = true;
   elBtnAttack.disabled = true;
-  elTimingResult.textContent = '💀 You Died!';
-  elTimingResult.style.color = '#ff4444';
-  onGameLog('💀 You Died! Returning to enemy selection...');
   updateHealthBars();
-  setTimeout(() => {
-    player.currentHp           = player.maxHp;
-    player.timeSinceLastDamage = 0;
-    player.regenAccumulator    = 0;
-    player.isRegenerating      = false;
-    currentEnemy.reset();
-    refreshPlayerHpUI();
-    displayEnemyList();
-  }, 2000);
+
+  const goldLost = player.applyDeathPenalty(currentEnemy.name);
+
+  document.getElementById('death-screen-killer').textContent  = `Killed by: ${currentEnemy.name}`;
+  document.getElementById('death-screen-gold').textContent    = goldLost > 0 ? `💸 Lost ${goldLost} gold` : 'No gold lost';
+  document.getElementById('death-screen-deaths').textContent  = `Total deaths: ${player.deathCount}`;
+
+  document.getElementById('death-screen').classList.add('open');
+  refreshPlayerUI();
+}
+
+function closeDeathScreen() {
+  document.getElementById('death-screen').classList.remove('open');
+}
+
+function respawnPlayer() {
+  player.currentHp           = Math.floor(player.maxHp * RESPAWN_HP_FRACTION);
+  player.timeSinceLastDamage = 0;
+  player.regenAccumulator    = 0;
+  player.isRegenerating      = false;
+  battleOver                 = false;
+  missPenalty                = false;
+  elBtnAttack.disabled       = false;
+  elTimingResult.textContent = '';
+  elDamageDisplay.textContent = '';
+  closeDeathScreen();
+  refreshPlayerHpUI();
+  refreshPlayerUI();
 }
 
 // ── Combat log hook ───────────────────────────────────────────
@@ -862,6 +895,23 @@ document.getElementById('btn-confirm-reroll').addEventListener('click', () => {
 document.getElementById('btn-cancel-reroll').addEventListener('click', () => {
   document.getElementById('reroll-confirm').style.display = 'none';
   document.getElementById('btn-do-reroll').style.display  = '';
+});
+
+// ── Death screen buttons ──────────────────────────────────────
+document.getElementById('btn-respawn-same').addEventListener('click', () => {
+  currentEnemy.reset();
+  respawnPlayer();
+  // Stay on the enemy panel to continue fighting immediately
+  elEnemySelectPanel.style.display = 'none';
+  elEnemyPanel.style.display       = 'block';
+  onGameLog(`--- Fighting again: ${currentEnemy.name} ---`);
+  updateHealthBars();
+});
+
+document.getElementById('btn-respawn-camp').addEventListener('click', () => {
+  currentEnemy.reset();
+  respawnPlayer();
+  displayEnemyList();
 });
 
 // ── Boot ─────────────────────────────────────────────────────

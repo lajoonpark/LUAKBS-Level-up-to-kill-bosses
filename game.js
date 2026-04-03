@@ -133,6 +133,10 @@ class Player {
 
     // The starting weapon is pre-crafted so the player can re-equip it
     this.craftedWeapons.push(this.weapon);
+
+    // ── Death tracking ──────────────────────────────────────────
+    this.deathCount = 0;
+    this.deathLog   = [];  // [{ enemyName, level, goldLost, timestamp }, ...]
   }
 
   // ── Max HP derived from vitality and race health multiplier ──
@@ -183,6 +187,17 @@ class Player {
   // ── Is the player alive? ───────────────────────────────────
   isAlive() {
     return this.currentHp > 0;
+  }
+
+  // ── Apply death penalty (gold loss) and record the death ───
+  // Returns the amount of gold lost (0 if the player had no gold).
+  applyDeathPenalty(enemyName = 'Unknown') {
+    const goldLost = Math.floor(this.gold * 0.15);
+    this.gold = Math.max(0, this.gold - goldLost);
+    this.deathCount++;
+    this.deathLog.push({ enemyName, level: this.level, goldLost, timestamp: Date.now() });
+    this._addLog(`💀 Died to ${enemyName}. Lost ${goldLost} gold. (Deaths: ${this.deathCount})`);
+    return goldLost;
   }
 
   // ── Take damage from an enemy ──────────────────────────────

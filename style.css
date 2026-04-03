@@ -1090,3 +1090,71 @@ h1 {
 .weapon-card.equip-blocked {
   animation: equip-blocked-flash 0.3s ease-in-out 2;
 }
+
+/* ── Death Screen Modal ── */
+#death-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.80);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+#death-screen.open { display: flex; }
+
+@keyframes death-screen-in {
+  from { opacity: 0; transform: scale(0.88) translateY(-16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+#death-screen-content {
+  background: #1a0a0a;
+  border: 2px solid #aa2222;
+  border-radius: 14px;
+  padding: 28px 32px;
+  max-width: 360px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: death-screen-in 0.25s ease-out forwards;
+}
+
+#death-screen-heading {
+  font-family: 'Cinzel', serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ff3333;
+  letter-spacing: 3px;
+  text-shadow: 0 0 18px rgba(255, 50, 50, 0.7);
+}
+
+#death-screen-killer {
+  font-size: 1rem;
+  color: #cc8888;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+#death-screen-gold {
+  font-size: 0.95rem;
+  color: #ffaa44;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+#death-screen-deaths {
+  font-size: 0.85rem;
+  color: #888;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+#death-screen-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
