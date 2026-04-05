@@ -1269,7 +1269,9 @@ function renderMerchantTab() {
 }
 
 // ── Save / Load System ────────────────────────────────────────
-const SAVE_KEY = '1000_battles_save';
+const SAVE_KEY                  = '1000_battles_save';
+const AUTO_SAVE_INTERVAL_MS     = 30000;
+const SAVE_STATUS_DURATION_MS   = 3000;
 let autoSaveTimer = null;
 
 function serializeGameState() {
@@ -1370,12 +1372,12 @@ function showSaveStatus(msg, color) {
   el.textContent  = msg;
   el.style.color  = color;
   clearTimeout(el._hideTimer);
-  el._hideTimer = setTimeout(() => { el.textContent = ''; }, 3000);
+  el._hideTimer = setTimeout(() => { el.textContent = ''; }, SAVE_STATUS_DURATION_MS);
 }
 
 function startAutoSave() {
   if (autoSaveTimer) clearInterval(autoSaveTimer);
-  autoSaveTimer = setInterval(saveGame, 30000);
+  autoSaveTimer = setInterval(saveGame, AUTO_SAVE_INTERVAL_MS);
 }
 
 // ── Save/Load button events ────────────────────────────────────
