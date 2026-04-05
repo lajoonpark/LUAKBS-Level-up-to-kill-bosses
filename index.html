@@ -71,33 +71,6 @@
     </div>
 
     <div id="weapon-display">🗡 Rusty Sword (common)</div>
-    <div id="race-display" style="margin-top:6px">🧬 Race: <span id="race-name">Human</span></div>
-    <button id="btn-reroll-race" class="btn btn-reroll-race" style="margin-top:6px">🎲 Reroll Race</button>
-
-    <div id="combat-stats-section">
-      <div id="combat-stats-header">
-        <h3>⚔ Player Stats</h3>
-        <button id="btn-stats-info" title="Stat descriptions">?</button>
-      </div>
-      <div class="cstat-row">
-        <span>Total Damage</span><span id="cstat-damage">—</span>
-      </div>
-      <div class="cstat-row">
-        <span>Crit Chance</span><span id="cstat-crit">—</span>
-      </div>
-      <div class="cstat-row">
-        <span>Max HP</span><span id="cstat-maxhp">—</span>
-      </div>
-      <div class="cstat-row">
-        <span>Luck Bonus</span><span id="cstat-luck">—</span>
-      </div>
-      <div class="cstat-row">
-        <span>DMG Multiplier</span><span id="cstat-dmg-mult">—</span>
-      </div>
-      <div class="cstat-row">
-        <span>HP Multiplier</span><span id="cstat-hp-mult">—</span>
-      </div>
-    </div>
 
     <div id="inventory-section">
       <h3>🎒 Inventory</h3>
@@ -158,69 +131,144 @@
     </div>
   </div>
 
-  <!-- ── Enemy Selection Panel (full width) ── -->
-  <div id="enemy-select-panel" class="panel" style="grid-column: 1 / -1; display: none;">
-    <h2>⚔ Choose Your Enemy</h2>
-    <div id="enemy-list"></div>
-  </div>
+  <!-- ── Right Column ── -->
+  <div id="right-column">
 
-  <!-- ── Right: Enemy & Combat ── -->
-  <div id="enemy-panel" class="panel">
-    <h2>Combat</h2>
+    <!-- Tab navigation -->
+    <nav class="tab-bar" role="tablist">
+      <button class="tab-btn" data-tab="combat" role="tab">⚔ Combat</button>
+      <button class="tab-btn active" data-tab="enemies" role="tab">🗺 Enemies</button>
+      <button class="tab-btn" data-tab="inventory" role="tab">🎒 Inventory<span class="tab-badge" id="tab-badge-inventory"></span></button>
+      <button class="tab-btn" data-tab="character" role="tab">📊 Character</button>
+    </nav>
 
-    <div id="enemy-portrait" class="enemy-portrait"></div>
+    <!-- ── Combat Tab ── -->
+    <div class="tab-panel" data-tab="combat" role="tabpanel">
 
-    <div id="enemy-info">
-      <div id="enemy-name">Slime</div>
-      <div id="enemy-hp-label">HP: 30 / 30</div>
-    </div>
+      <div id="enemy-panel" class="panel">
+        <h2>Combat</h2>
 
-    <div id="enemy-hp-bar-wrap">
-      <div id="enemy-hp-bar"></div>
-    </div>
+        <div id="enemy-portrait" class="enemy-portrait"></div>
 
-    <!-- Timing Bar -->
-    <div id="timing-section">
-      <div
-        id="timing-bar-wrap"
-        title="Click to attack!"
-        role="button"
-        aria-label="Attack timing bar – click to attack"
-        tabindex="0"
-      >
-        <div id="hit-zone-bad"></div>
-        <div id="hit-zone-good"></div>
-        <div id="hit-zone-perfect"></div>
-        <div id="marker"></div>
+        <div id="enemy-info">
+          <div id="enemy-name">Slime</div>
+          <div id="enemy-hp-label">HP: 30 / 30</div>
+        </div>
+
+        <div id="enemy-hp-bar-wrap">
+          <div id="enemy-hp-bar"></div>
+        </div>
+
+        <!-- Timing Bar -->
+        <div id="timing-section">
+          <div
+            id="timing-bar-wrap"
+            title="Click to attack!"
+            role="button"
+            aria-label="Attack timing bar – click to attack"
+            tabindex="0"
+          >
+            <div id="hit-zone-bad"></div>
+            <div id="hit-zone-good"></div>
+            <div id="hit-zone-perfect"></div>
+            <div id="marker"></div>
+          </div>
+          <div id="timing-labels">
+            <span>0</span><span>Miss</span><span>Hit Zone</span><span>Miss</span><span>100</span>
+          </div>
+          <div id="timing-result"></div>
+          <div id="damage-display"></div>
+        </div>
+
+        <button id="btn-attack" class="btn">⚔ Attack!</button>
+        <button id="btn-change-enemy" class="btn btn-secondary">🔀 Change Enemy</button>
       </div>
-      <div id="timing-labels">
-        <span>0</span><span>Miss</span><span>Hit Zone</span><span>Miss</span><span>100</span>
+
+      <!-- Combat Log -->
+      <div id="log-panel" class="panel">
+        <h2>📜 Combat Log</h2>
+        <div id="log-box"></div>
       </div>
-      <div id="timing-result"></div>
-      <div id="damage-display"></div>
-    </div>
 
-    <button id="btn-attack" class="btn">⚔ Attack!</button>
-    <button id="btn-change-enemy" class="btn btn-secondary">🔀 Change Enemy</button>
-  </div>
+    </div><!-- /combat tab -->
 
-  <!-- ── Weapon Shop (full width) ── -->
-  <div id="shop-panel" class="panel">
-    <h2>🗡 My Weapons (click to equip)</h2>
-    <div id="weapon-list"></div>
-  </div>
+    <!-- ── Enemies Tab ── -->
+    <div class="tab-panel active" data-tab="enemies" role="tabpanel">
 
-  <!-- ── Crafting Menu (full width) ── -->
-  <div id="crafting-panel" class="panel">
-    <h2>🔨 Crafting</h2>
-    <div id="crafting-list"></div>
-  </div>
+      <div id="enemy-tier-filter">
+        <button class="tier-filter-btn active" data-tier="all">All</button>
+        <button class="tier-filter-btn" data-tier="tier-easy">Easy</button>
+        <button class="tier-filter-btn" data-tier="tier-medium">Medium</button>
+        <button class="tier-filter-btn" data-tier="tier-hard">Hard</button>
+        <button class="tier-filter-btn" data-tier="tier-boss">Boss</button>
+      </div>
 
-  <!-- ── Combat Log (full width) ── -->
-  <div id="log-panel" class="panel">
-    <h2>📜 Combat Log</h2>
-    <div id="log-box"></div>
-  </div>
+      <div id="enemy-select-panel" class="panel">
+        <h2>⚔ Choose Your Enemy</h2>
+        <div id="enemy-list"></div>
+      </div>
+
+    </div><!-- /enemies tab -->
+
+    <!-- ── Inventory Tab ── -->
+    <div class="tab-panel" data-tab="inventory" role="tabpanel">
+
+      <div id="materials-panel" class="panel">
+        <h2>📦 Materials</h2>
+        <div id="materials-list"><span class="inv-empty">No materials yet</span></div>
+      </div>
+
+      <div id="shop-panel" class="panel">
+        <h2>🗡 My Weapons (click to equip)</h2>
+        <div id="weapon-list"></div>
+      </div>
+
+      <div id="crafting-panel" class="panel">
+        <h2>🔨 Crafting</h2>
+        <div id="crafting-list"></div>
+      </div>
+
+    </div><!-- /inventory tab -->
+
+    <!-- ── Character Tab ── -->
+    <div class="tab-panel" data-tab="character" role="tabpanel">
+
+      <div id="character-tab-panel" class="panel">
+        <h2>📊 Character</h2>
+
+        <div id="race-display" style="margin-top:6px">🧬 Race: <span id="race-name">Human</span></div>
+        <button id="btn-reroll-race" class="btn btn-reroll-race" style="margin-top:6px">🎲 Reroll Race</button>
+
+        <div id="combat-stats-section">
+          <div id="combat-stats-header">
+            <h3>⚔ Player Stats</h3>
+            <button id="btn-stats-info" title="Stat descriptions">?</button>
+          </div>
+          <div class="cstat-row">
+            <span>Total Damage</span><span id="cstat-damage">—</span>
+          </div>
+          <div class="cstat-row">
+            <span>Crit Chance</span><span id="cstat-crit">—</span>
+          </div>
+          <div class="cstat-row">
+            <span>Max HP</span><span id="cstat-maxhp">—</span>
+          </div>
+          <div class="cstat-row">
+            <span>Luck Bonus</span><span id="cstat-luck">—</span>
+          </div>
+          <div class="cstat-row">
+            <span>DMG Multiplier</span><span id="cstat-dmg-mult">—</span>
+          </div>
+          <div class="cstat-row">
+            <span>HP Multiplier</span><span id="cstat-hp-mult">—</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /character tab -->
+
+  </div><!-- /right-column -->
 
 </div><!-- /game-container -->
 
@@ -279,6 +327,45 @@ const elMarker     = document.getElementById('marker');
 
 const elEnemyPanel      = document.getElementById('enemy-panel');
 const elEnemySelectPanel = document.getElementById('enemy-select-panel');
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.tab === tabName);
+  });
+  if (tabName === 'inventory') clearTabBadge('inventory');
+}
+
+function showTabBadge(tabName) {
+  const badge = document.getElementById(`tab-badge-${tabName}`);
+  if (badge) badge.classList.add('visible');
+}
+
+function clearTabBadge(tabName) {
+  const badge = document.getElementById(`tab-badge-${tabName}`);
+  if (badge) badge.classList.remove('visible');
+}
+
+// ── Materials summary (Inventory tab) ────────────────────────
+function updateMaterialsSummary() {
+  const list = document.getElementById('materials-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const items = Object.entries(player.inventory).filter(([k]) => k !== 'Race Reroll');
+  if (items.length === 0) {
+    list.innerHTML = '<span class="inv-empty">No materials yet</span>';
+    return;
+  }
+  items.forEach(([name, qty]) => {
+    const span = document.createElement('span');
+    span.className = 'inv-item';
+    span.textContent = `${name} ×${qty}`;
+    list.appendChild(span);
+  });
+}
 
 // ── Timing bar setup ─────────────────────────────────────────
 const timingBar = new TimingBar({ speed: 50 });
@@ -346,6 +433,7 @@ function refreshPlayerUI() {
 
   timingBar.setSpeedForLevel(player.level);
   displayInventory();
+  updateMaterialsSummary();
   displayCraftingMenu();
   updateStatsDisplay();
   refreshPlayerHpUI();
@@ -549,10 +637,9 @@ function displayCraftingMenu() {
 
 // ── Enemy selection ──────────────────────────────────────────
 function displayEnemyList() {
-  elEnemySelectPanel.style.display = 'block';
-  elEnemyPanel.style.display       = 'none';
-  elBtnAttack.disabled             = true;
+  elBtnAttack.disabled = true;
   buildEnemyList();
+  switchTab('enemies');
 }
 
 function buildEnemyList() {
@@ -612,8 +699,7 @@ function startFight(enemy) {
   elBtnAttack.disabled = false;
   elTimingResult.textContent  = '';
   elDamageDisplay.textContent = '';
-  elEnemySelectPanel.style.display = 'none';
-  elEnemyPanel.style.display       = 'block';
+  switchTab('combat');
   refreshEnemyUI();
   onGameLog(`--- Fighting: ${currentEnemy.name} ---`);
 }
@@ -647,6 +733,7 @@ function endFight() {
   currentEnemy.reset();
   refreshPlayerUI();
   updateHealthBars();
+  showTabBadge('inventory');
 
   // Auto-respawn: re-enable combat after a short delay
   setTimeout(() => {
@@ -963,9 +1050,7 @@ document.getElementById('btn-cancel-reroll').addEventListener('click', () => {
 document.getElementById('btn-respawn-same').addEventListener('click', () => {
   currentEnemy.reset();
   respawnPlayer();
-  // Stay on the enemy panel to continue fighting immediately
-  elEnemySelectPanel.style.display = 'none';
-  elEnemyPanel.style.display       = 'block';
+  switchTab('combat');
   onGameLog(`--- Fighting again: ${currentEnemy.name} ---`);
   updateHealthBars();
 });
@@ -974,6 +1059,18 @@ document.getElementById('btn-respawn-camp').addEventListener('click', () => {
   currentEnemy.reset();
   respawnPlayer();
   displayEnemyList();
+});
+
+// ── Tier filter (event delegation) ───────────────────────────
+document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tier-filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tier-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const tier = btn.dataset.tier;
+  document.querySelectorAll('#enemy-list .enemy-card').forEach(card => {
+    card.style.display = (tier === 'all' || card.classList.contains(tier)) ? '' : 'none';
+  });
 });
 
 // ── Boot ─────────────────────────────────────────────────────

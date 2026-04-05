@@ -317,8 +317,6 @@ h1 {
 }
 
 /* ── Enemy area ── */
-#enemy-panel { grid-column: 2; }
-
 #enemy-info {
   display: flex;
   justify-content: space-between;
@@ -489,7 +487,6 @@ h1 {
 #btn-change-enemy:hover { background: linear-gradient(135deg, #4477aa, #66aadd); }
 
 /* ── Weapon shop ── */
-#shop-panel { grid-column: 1 / -1; }
 
 #weapon-list {
   display: flex;
@@ -548,7 +545,6 @@ h1 {
 }
 
 /* ── Combat log ── */
-#log-panel { grid-column: 1 / -1; }
 
 #log-box {
   position: relative;
@@ -587,7 +583,6 @@ h1 {
 #log-box .log-entry.crit      { color: #ff6666; font-weight: bold; }
 
 /* ── Enemy selection panel ── */
-#enemy-select-panel { grid-column: 1 / -1; }
 
 #enemy-list {
   display: flex;
@@ -847,7 +842,6 @@ h1 {
 }
 
 /* ── Crafting panel ── */
-#crafting-panel { grid-column: 1 / -1; }
 
 #crafting-list {
   display: flex;
@@ -927,14 +921,131 @@ h1 {
 #log-box .log-entry.drop  { color: #88ddff; }
 #log-box .log-entry.craft { color: #88ffcc; font-weight: bold; }
 
+/* ── Stats panel – sticky ── */
+#stats-panel {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+/* ── Right column ── */
+#right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+/* ── Tab bar ── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: #0f0f22;
+  border: 1px solid #2e2e5e;
+  border-radius: 10px;
+  padding: 5px;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: #5a6880;
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.tab-btn:hover {
+  background: #1e1e40;
+  color: #a0b8e0;
+}
+.tab-btn.active {
+  background: #1e1e3e;
+  color: #f0c040;
+  box-shadow: 0 0 8px rgba(240, 192, 64, 0.2);
+}
+
+/* ── Tab badge (notification dot) ── */
+.tab-badge {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #ff6644;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 100, 60, 0.8);
+}
+.tab-badge.visible { display: block; }
+
+/* ── Tab panels ── */
+.tab-panel { display: none; }
+.tab-panel.active {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Enemies tab tier filter ── */
+#enemy-tier-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tier-filter-btn {
+  background: #1e1e3e;
+  border: 1px solid #3a3a7a;
+  border-radius: 20px;
+  color: #7080a0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tier-filter-btn:hover { background: #2a2a5a; border-color: #6666bb; }
+.tier-filter-btn.active { background: #252540; border-color: #f0c040; color: #f0c040; }
+.tier-filter-btn[data-tier="tier-easy"].active   { border-color: #44cc44; color: #44cc44; }
+.tier-filter-btn[data-tier="tier-medium"].active { border-color: #ee8822; color: #ee8822; }
+.tier-filter-btn[data-tier="tier-hard"].active   { border-color: #cc3333; color: #cc3333; }
+.tier-filter-btn[data-tier="tier-boss"].active   { border-color: #bb44ff; color: #bb44ff; }
+
+/* ── Materials panel ── */
+#materials-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* ── Character tab panel ── */
+#character-tab-panel #combat-stats-section {
+  margin-top: 14px;
+  border-top: 1px solid #2e2e5e;
+  padding-top: 10px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   #game-container { grid-template-columns: 1fr; gap: 14px; }
-  #enemy-panel    { grid-column: 1; }
-  #enemy-select-panel { grid-column: 1; }
-  #shop-panel     { grid-column: 1; }
-  #crafting-panel { grid-column: 1; }
-  #log-panel      { grid-column: 1; }
+  #stats-panel { position: static; max-height: none; overflow-y: visible; }
+
+  .tab-btn { font-size: 0.6rem; padding: 7px 2px; }
 
   #timing-bar-wrap { height: 64px; }
 
