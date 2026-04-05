@@ -64,6 +64,9 @@
     </div>
 
     <div id="stat-points-row">Stat Points: <strong id="stat-points">0</strong></div>
+    <div id="stat-reset-row">
+      <button id="btn-stat-reset" title="Reset all stats back to base and recover all spent points">🔄 Reset Stats (500 🪙)</button>
+    </div>
 
     <div id="currency-row">
       <span class="gold">🪙 <span id="gold">0</span></span>
@@ -459,6 +462,9 @@ function refreshPlayerUI() {
     btn.classList.toggle('active-alloc', player.statPoints > 0);
   });
 
+  const elStatReset = document.getElementById('btn-stat-reset');
+  if (elStatReset) elStatReset.disabled = player.gold < 500;
+
   timingBar.setSpeedForLevel(player.level);
   displayInventory();
   updateMaterialsSummary();
@@ -621,6 +627,7 @@ function displayCraftingMenu() {
   const list = document.getElementById('crafting-list');
   list.innerHTML = '';
   CRAFTING_RECIPES.forEach((recipe) => {
+    if (player.craftedWeapons.some(w => w.name === recipe.weapon.name)) return;
     const canCraft = player.hasMaterials(recipe);
     const card = document.createElement('div');
     card.className = 'craft-card' + (canCraft ? ' craftable' : '');
@@ -915,6 +922,13 @@ document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
     player.allocateStat(btn.dataset.stat);
     refreshPlayerUI();
   });
+});
+
+// ── Stat reset button ─────────────────────────────────────────
+document.getElementById('btn-stat-reset').addEventListener('click', () => {
+  if (!confirm('Reset all stats to base (5 each) and recover all spent stat points?\nThis costs 500 🪙 gold.')) return;
+  player.resetStats();
+  refreshPlayerUI();
 });
 
 // ── Total stats functions ─────────────────────────────────────

@@ -194,6 +194,24 @@ class Player {
     return true;
   }
 
+  // ── Reset all allocated stats (costs 500 gold) ────────────
+  resetStats() {
+    const RESET_COST = 500;
+    if (this.gold < RESET_COST) {
+      this._addLog(`❌ Not enough gold to reset stats (need ${RESET_COST} 🪙)`);
+      return false;
+    }
+    const BASE_STAT = 5;
+    const spent = Object.values(this.stats).reduce((sum, v) => sum + (v - BASE_STAT), 0);
+    for (const key of Object.keys(this.stats)) {
+      this.stats[key] = BASE_STAT;
+    }
+    this.statPoints += spent;
+    this.gold -= RESET_COST;
+    this._addLog(`🔄 Stats reset! Recovered ${spent} stat points. (-${RESET_COST} 🪙)`);
+    return true;
+  }
+
   // ── Is the player alive? ───────────────────────────────────
   isAlive() {
     return this.currentHp > 0;

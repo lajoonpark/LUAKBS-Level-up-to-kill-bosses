@@ -162,6 +162,23 @@ h1 {
   color: #88ffaa;
 }
 
+#stat-reset-row {
+  margin-top: 6px;
+}
+
+#btn-stat-reset {
+  background: #3a2a1a;
+  border: 1px solid #aa6622;
+  color: #f0c040;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+#btn-stat-reset:hover:not(:disabled) { background: #5a3a1a; border-color: #ffaa44; }
+#btn-stat-reset:disabled { opacity: 0.3; cursor: not-allowed; }
+
 .stat-alloc-btn {
   background: #2a2a5a;
   border: 1px solid #4444aa;
