@@ -220,7 +220,8 @@ class Player {
   // ── Apply death penalty (gold loss) and record the death ───
   // Returns the amount of gold lost (0 if the player had no gold).
   applyDeathPenalty(enemyName = 'Unknown') {
-    const goldLost = Math.floor(this.gold * 0.15);
+    const penaltyRate = 0.35 + Math.random() * 0.40; // 35–75%
+    const goldLost = Math.floor(this.gold * penaltyRate);
     this.gold = Math.max(0, this.gold - goldLost);
     this.deathCount++;
     this.deathLog.push({ enemyName, level: this.level, goldLost, timestamp: Date.now() });
