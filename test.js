@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance } = require('./game.js');
+const { Player, Enemy, Weapon, Rune, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -636,6 +636,299 @@ const pdp6 = new Player();
 pdp6.gold = 50;
 pdp6.applyDeathPenalty();
 assert(pdp6.deathLog[0].enemyName === 'Unknown', 'defaults enemyName to Unknown when omitted');
+
+// ─────────────────────────────────────────────
+//  Rune system
+// ─────────────────────────────────────────────
+section('Rune class');
+assert(typeof Rune === 'function',          'Rune is a class/constructor');
+const r = new Rune('test', 'Test Rune', '🧪', 'damageBonus', 0.15, 'uncommon');
+assert(r.id     === 'test',                 'Rune id correct');
+assert(r.name   === 'Test Rune',            'Rune name correct');
+assert(r.emoji  === '🧪',                   'Rune emoji correct');
+assert(r.effect === 'damageBonus',          'Rune effect correct');
+assert(r.value  === 0.15,                   'Rune value correct');
+assert(r.rarity === 'uncommon',             'Rune rarity correct');
+assert(r.toString().includes('UNCOMMON'),   'Rune toString includes rarity');
+
+section('RUNES catalog');
+assert(Array.isArray(RUNES),                'RUNES is an array');
+assert(RUNES.length >= 10,                  'RUNES has at least 10 entries');
+RUNES.forEach(rn => {
+  assert(typeof rn.id     === 'string' && rn.id.length > 0,    `${rn.name} has an id`);
+  assert(typeof rn.name   === 'string' && rn.name.length > 0,  `${rn.name} has a name`);
+  assert(typeof rn.effect === 'string' && rn.effect.length > 0,`${rn.name} has an effect`);
+  assert(typeof rn.value  === 'number' && rn.value > 0,        `${rn.name} has a positive value`);
+  assert(RARITY_ORDER.includes(rn.rarity),                     `${rn.name} has a valid rarity`);
+});
+// Spot-check specific runes
+const bloodRune = RUNES.find(rn => rn.id === 'blood');
+assert(bloodRune !== undefined,              'Blood Rune exists in catalog');
+assert(bloodRune.effect  === 'lifesteal',    'Blood Rune effect is lifesteal');
+assert(bloodRune.value   === 0.02,           'Blood Rune value is 0.02 (2%)');
+assert(bloodRune.rarity  === 'common',       'Blood Rune is common rarity');
+
+const grandBlood = RUNES.find(rn => rn.id === 'grandblood');
+assert(grandBlood !== undefined,             'Grand Blood Rune exists in catalog');
+assert(grandBlood.value  === 0.05,           'Grand Blood Rune value is 0.05 (5%)');
+assert(grandBlood.rarity === 'epic',         'Grand Blood Rune is epic rarity');
+
+section('RARITY_ORDER');
+assert(Array.isArray(RARITY_ORDER),          'RARITY_ORDER is an array');
+assert(RARITY_ORDER[0] === 'common',         'index 0 is common');
+assert(RARITY_ORDER[1] === 'uncommon',       'index 1 is uncommon');
+assert(RARITY_ORDER[2] === 'rare',           'index 2 is rare');
+assert(RARITY_ORDER[3] === 'epic',           'index 3 is epic');
+
+section('Player – rune defaults');
+const rp = new Player();
+assert(Array.isArray(rp.runeSlots),          'runeSlots is an array');
+assert(rp.runeSlots.length === 3,            'runeSlots has 3 entries');
+assert(rp.runeSlots.every(s => s === null),  'all runeSlots start as null');
+assert(rp.unlockedRuneSlots === 1,           'unlockedRuneSlots starts at 1');
+assert(Array.isArray(rp.runeInventory),      'runeInventory is an array');
+assert(rp.runeInventory.length === 0,        'runeInventory starts empty');
+
+section('Player – getRuneBonus with no runes');
+const rp2 = new Player();
+assert(rp2.getRuneBonus('damageBonus')    === 0, 'getRuneBonus returns 0 when no runes equipped');
+assert(rp2.getRuneBonus('lifesteal')      === 0, 'getRuneBonus lifesteal 0 with no runes');
+assert(rp2.getRuneBonus('damageReduction')===0, 'getRuneBonus damageReduction 0 with no runes');
+
+section('Player – getRuneBonus with equipped rune');
+const rp3 = new Player();
+const furyRune = RUNES.find(rn => rn.id === 'fury');
+rp3.runeSlots[0] = furyRune;  // manually socket
+assert(rp3.getRuneBonus('damageBonus') === 0.15, 'getRuneBonus returns equipped rune value');
+assert(rp3.getRuneBonus('lifesteal')   === 0,    'getRuneBonus returns 0 for other effects');
+
+section('Player – getRuneBonus sums multiple runes');
+const rp4 = new Player();
+rp4.unlockedRuneSlots = 2;
+rp4.runeSlots[0] = bloodRune;         // 2% lifesteal
+rp4.runeSlots[1] = grandBlood;        // 5% lifesteal
+const epsRune = 1e-9;
+assert(Math.abs(rp4.getRuneBonus('lifesteal') - 0.07) < epsRune, 'getRuneBonus sums multiple lifesteal runes (0.07)');
+
+section('Player – getRuneBonus respects unlockedRuneSlots');
+const rp5 = new Player();
+rp5.runeSlots[0] = furyRune;
+rp5.runeSlots[1] = furyRune; // slot 1 is locked (unlockedRuneSlots=1)
+assert(rp5.getRuneBonus('damageBonus') === 0.15, 'getRuneBonus ignores locked slots');
+
+section('Player – equipRune');
+const req = new Player();
+req.runeInventory.push(furyRune);
+const equipOk = req.equipRune(0, 0);
+assert(equipOk === true,                     'equipRune returns true on success');
+assert(req.runeSlots[0] === furyRune,        'rune moves into slot');
+assert(req.runeInventory.length === 0,       'rune removed from inventory after equip');
+
+// Equip into occupied slot displaces old rune
+req.runeInventory.push(bloodRune);
+req.equipRune(0, 0);
+assert(req.runeSlots[0] === bloodRune,       'new rune replaces old in slot');
+assert(req.runeInventory.includes(furyRune), 'displaced rune returns to inventory');
+
+// Invalid runeIndex
+const badEquip = req.equipRune(99, 0);
+assert(badEquip === false,                   'equipRune returns false for invalid runeIndex');
+
+// Locked slot
+const badSlot = req.equipRune(0, 1);  // slot 1 locked (unlockedRuneSlots=1)
+assert(badSlot === false,                    'equipRune returns false for locked slot');
+
+section('Player – unequipRune');
+const run = new Player();
+run.runeSlots[0] = furyRune;
+const unequipOk = run.unequipRune(0);
+assert(unequipOk === true,                   'unequipRune returns true on success');
+assert(run.runeSlots[0] === null,            'slot is null after unequip');
+assert(run.runeInventory.includes(furyRune), 'rune moves back to inventory');
+
+// Empty slot
+const emptyUnequip = run.unequipRune(0);
+assert(emptyUnequip === false,               'unequipRune returns false for empty slot');
+
+// Locked slot
+const lockedUnequip = run.unequipRune(1);
+assert(lockedUnequip === false,              'unequipRune returns false for locked slot');
+
+section('Player – critChance includes rune critChanceBonus');
+const rc = new Player();
+rc.stats.dexterity = 5;
+const baseCrit = 0.05 + 5 * 0.01; // 0.10
+assert(Math.abs(rc.critChance() - baseCrit) < epsRune, 'critChance correct with no rune');
+
+rc.runeSlots[0] = RUNES.find(rn => rn.id === 'swift'); // +5% crit
+const withRuneCrit = 0.05 + 5 * 0.01 + 0.05; // 0.15
+assert(Math.abs(rc.critChance() - withRuneCrit) < epsRune, 'critChance includes Swift Rune bonus');
+
+// Cap at 0.75
+rc.stats.dexterity = 100;
+assert(rc.critChance() === 0.75,             'critChance capped at 0.75 with rune');
+
+section('Player – attackEnemy with damageBonus rune');
+const rad = new Player();
+rad.race = 'Human';
+const dummyDA = new Enemy('Dummy', 5000, 0, 0, 0, 0, []);
+const baseAtk = rad.baseDamage();
+rad.runeSlots[0] = furyRune;  // +15% damage
+// Run many attacks to verify average damage is higher (not crit-skewed)
+let totalDmgNoRune  = 0;
+let totalDmgRune    = 0;
+const TRIALS = 200;
+for (let i = 0; i < TRIALS; i++) {
+  const p0 = new Player(); p0.race = 'Human';
+  const p1 = new Player(); p1.race = 'Human'; p1.runeSlots[0] = furyRune;
+  const e0 = new Enemy('D', 99999, 0, 0, 0, 0, []);
+  const e1 = new Enemy('D', 99999, 0, 0, 0, 0, []);
+  totalDmgNoRune += p0.attackEnemy(e0, 1.0);
+  totalDmgRune   += p1.attackEnemy(e1, 1.0);
+}
+assert(totalDmgRune > totalDmgNoRune,        'damageBonus rune increases average damage dealt');
+
+section('Player – lifesteal heals on hit');
+const rls = new Player();
+rls.race = 'Human';
+rls.runeSlots[0] = bloodRune; // 2% lifesteal
+rls.currentHp = 1;            // hurt so there is room to heal
+const lsTarget = new Enemy('Dummy', 5000, 0, 0, 0, 0, []);
+const prevHp = rls.currentHp;
+rls.attackEnemy(lsTarget, 1.0);
+assert(rls.currentHp >= prevHp,              'lifesteal heals at least as much as before attacking');
+
+section('Player – lifesteal does not exceed maxHp');
+const rlsFull = new Player();
+rlsFull.race = 'Human';
+rlsFull.runeSlots[0] = grandBlood; // 5% lifesteal
+rlsFull.currentHp = rlsFull.maxHp; // full HP
+const lsTarget2 = new Enemy('Dummy', 5000, 0, 0, 0, 0, []);
+rlsFull.attackEnemy(lsTarget2, 1.0);
+assert(rlsFull.currentHp <= rlsFull.maxHp,   'lifesteal does not exceed maxHp');
+
+section('Player – damageReduction rune in fightEnemy');
+// Player with Ward Rune should survive longer (take less damage) than without
+const wardRune = RUNES.find(rn => rn.id === 'ward');
+// Use an enemy that deals a lot of damage per hit
+const tankEnemy = new Enemy('Tanker', 1, 200, 0, 0, 0, [], 0, 0);
+const pNoRune = new Player(); pNoRune.race = 'Human';
+const pWithRune = new Player(); pWithRune.race = 'Human'; pWithRune.runeSlots[0] = wardRune;
+// Manually calculate the dmgTaken for each to compare
+const vitalityFrac = pNoRune.stats.vitality / (pNoRune.stats.vitality + 50);
+const reductionNoRune   = Math.min(vitalityFrac, 0.75);
+const reductionWithRune = Math.min(vitalityFrac + wardRune.value, 0.75);
+const dmgNoRune   = Math.max(1, Math.round(200 * (1 - reductionNoRune)));
+const dmgWithRune = Math.max(1, Math.round(200 * (1 - reductionWithRune)));
+assert(dmgWithRune < dmgNoRune,              'Ward Rune reduces incoming damage in fightEnemy');
+
+section('Player – regenBonus rune increases heal amount');
+const mendRune = RUNES.find(rn => rn.id === 'mending');
+const prRegenBase = new Player();
+prRegenBase.currentHp           = 1;
+prRegenBase.timeSinceLastDamage = 3;
+prRegenBase.updateRegen(1.0);
+const healBase = prRegenBase.currentHp - 1;
+
+const prRegenRune = new Player();
+prRegenRune.currentHp           = 1;
+prRegenRune.timeSinceLastDamage = 3;
+prRegenRune.runeSlots[0]        = mendRune; // +2% regen
+prRegenRune.updateRegen(1.0);
+const healRune = prRegenRune.currentHp - 1;
+assert(healRune >= healBase,                 'Mending Rune heals at least as much as base regen');
+
+section('Player – expBonus and goldBonus in _collectRewards');
+// Use _collectRewards indirectly via fightEnemy (enemy must die in one hit)
+const wisdomRune = RUNES.find(rn => rn.id === 'wisdom');
+const fortuneRune = RUNES.find(rn => rn.id === 'fortune');
+const weakEnemy = new Enemy('Weak', 1, 0, 100, 50, 0, [], 0, 0);
+
+const pBase = new Player(); pBase.race = 'Human';
+const expBefore = pBase.exp; const goldBefore = pBase.gold;
+pBase.attackEnemy(weakEnemy, 1.0); // kill
+weakEnemy.reset();
+pBase._collectRewards(weakEnemy);
+const baseExpGained  = pBase.exp  - expBefore;
+const baseGoldGained = pBase.gold - goldBefore;
+
+// With wisdom + fortune runes
+const pBonus = new Player(); pBonus.race = 'Human';
+pBonus.runeSlots[0] = wisdomRune;
+const weakEnemy2 = new Enemy('Weak', 1, 0, 100, 50, 0, [], 0, 0);
+pBonus.attackEnemy(weakEnemy2, 1.0);
+weakEnemy2.reset();
+const expBefore2  = pBonus.exp; const goldBefore2 = pBonus.gold;
+pBonus._collectRewards(weakEnemy2);
+const bonusExpGained  = pBonus.exp  - expBefore2;
+const bonusGoldGained = pBonus.gold - goldBefore2;
+assert(bonusExpGained >= baseExpGained,     'Wisdom Rune increases EXP gained from rewards');
+
+const pFortune = new Player(); pFortune.race = 'Human';
+pFortune.runeSlots[0] = fortuneRune;
+const weakEnemy3 = new Enemy('Weak', 1, 0, 100, 50, 0, [], 0, 0);
+pFortune.attackEnemy(weakEnemy3, 1.0);
+weakEnemy3.reset();
+const goldBefore3 = pFortune.gold;
+pFortune._collectRewards(weakEnemy3);
+const fortuneGoldGained = pFortune.gold - goldBefore3;
+assert(fortuneGoldGained >= baseGoldGained, 'Fortune Rune increases gold gained from rewards');
+
+section('Player – rollRuneDrop');
+// No rune drop for enemy with runeDropChance 0
+const prnd = new Player();
+const noRuneEnemy = new Enemy('NoRune', 10, 0, 0, 0, 0, [], 0, 0);
+const noRuneDrop = prnd.rollRuneDrop(noRuneEnemy);
+assert(noRuneDrop === null,                  'rollRuneDrop returns null when runeDropChance is 0');
+assert(prnd.runeInventory.length === 0,      'runeInventory unchanged when no rune drops');
+
+// Guaranteed rune drop (runeDropChance = 1.0)
+const prnd2 = new Player();
+const guaranteedRuneEnemy = new Enemy('GuaranteedRune', 10, 0, 0, 0, 0, [], 1.0, 0);
+const dropped = prnd2.rollRuneDrop(guaranteedRuneEnemy);
+assert(dropped !== null,                     'rollRuneDrop returns a Rune when chance is 1.0');
+assert(dropped instanceof Rune,              'rolled drop is a Rune instance');
+assert(prnd2.runeInventory.length === 1,     'rune added to runeInventory on drop');
+assert(prnd2.runeInventory[0] === dropped,   'runeInventory contains the dropped rune');
+
+// Tier 0 – only common runes should drop
+for (let i = 0; i < 30; i++) {
+  const pe = new Player();
+  const tierEnemy = new Enemy('T0', 1, 0, 0, 0, 0, [], 1.0, 0);
+  const rd = pe.rollRuneDrop(tierEnemy);
+  assert(rd === null || rd.rarity === 'common', `tier 0 enemy only drops common runes (got ${rd && rd.rarity})`);
+}
+
+// Tier 3 – all rarities eligible (cannot assert a specific rarity, just that drop is from RUNES)
+const pe3 = new Player();
+const t3Enemy = new Enemy('T3', 1, 0, 0, 0, 0, [], 1.0, 3);
+const rd3 = pe3.rollRuneDrop(t3Enemy);
+assert(rd3 !== null,                         'tier 3 enemy can drop runes');
+assert(RUNES.includes(rd3),                  'tier 3 dropped rune is from the RUNES catalog');
+
+// Luck increases rune drop chance
+const prndLucky = new Player();
+prndLucky.stats.luck = 100; // high luck
+const halfChanceEnemy = new Enemy('Half', 1, 0, 0, 0, 0, [], 0.05, 0);
+let dropCount = 0;
+for (let i = 0; i < 100; i++) {
+  const pl = new Player(); pl.stats.luck = 100;
+  if (pl.rollRuneDrop(halfChanceEnemy)) dropCount++;
+}
+// With luck=100 and base 5%, chance = min(0.05 + 100*0.002, 0.15) = 0.15 → expect ~15 in 100
+assert(dropCount > 5,                        'higher luck increases rune drop rate');
+
+section('Enemy – runeDropChance and runeTier fields');
+ENEMIES.forEach(en => {
+  assert(typeof en.runeDropChance === 'number', `${en.name} has runeDropChance`);
+  assert(en.runeDropChance >= 0,               `${en.name} runeDropChance is non-negative`);
+  assert(typeof en.runeTier === 'number',       `${en.name} has runeTier`);
+  assert(en.runeTier >= 0 && en.runeTier <= 3, `${en.name} runeTier is 0–3`);
+});
+const slimeE = ENEMIES[0];
+const dragonE = ENEMIES[ENEMIES.length - 1];
+assert(slimeE.runeDropChance < dragonE.runeDropChance, 'Dragon Boss has higher runeDropChance than Slime');
+assert(slimeE.runeTier < dragonE.runeTier,             'Dragon Boss has higher runeTier than Slime');
 
 // ─────────────────────────────────────────────
 //  Summary

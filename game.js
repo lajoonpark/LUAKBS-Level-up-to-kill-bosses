@@ -62,6 +62,44 @@ const ENEMY_SCALE_EXP       = 0.06;
 const ENEMY_SCALE_GOLD      = 0.05;
 
 // ─────────────────────────────────────────────
+//  Rune system
+// ─────────────────────────────────────────────
+
+// Rarity tiers in ascending order – used to filter eligible rune drops by enemy tier.
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic'];
+
+class Rune {
+  constructor(id, name, emoji, effect, value, rarity) {
+    this.id     = id;
+    this.name   = name;
+    this.emoji  = emoji;
+    // effect: 'lifesteal' | 'damageBonus' | 'damageReduction' |
+    //         'critChanceBonus' | 'expBonus' | 'goldBonus' | 'regenBonus'
+    this.effect = effect;
+    this.value  = value;   // fraction: 0.02 = 2%
+    this.rarity = rarity;  // 'common' | 'uncommon' | 'rare' | 'epic'
+  }
+
+  toString() {
+    return `[${this.rarity.toUpperCase()}] ${this.name}`;
+  }
+}
+
+// Predefined rune catalog (runeTier 0=common only, 1=up to uncommon, 2=up to rare, 3=epic)
+const RUNES = [
+  new Rune('blood',       'Blood Rune',        '🩸', 'lifesteal',       0.02, 'common'),
+  new Rune('fury',        'Fury Rune',         '🔥', 'damageBonus',     0.15, 'uncommon'),
+  new Rune('ward',        'Ward Rune',         '🛡', 'damageReduction', 0.10, 'uncommon'),
+  new Rune('swift',       'Swift Rune',        '💨', 'critChanceBonus', 0.05, 'rare'),
+  new Rune('fortune',     'Fortune Rune',      '🪙', 'goldBonus',       0.10, 'uncommon'),
+  new Rune('wisdom',      'Wisdom Rune',       '📚', 'expBonus',        0.10, 'uncommon'),
+  new Rune('mending',     'Mending Rune',      '💚', 'regenBonus',      0.02, 'rare'),
+  new Rune('greaterfury', 'Greater Fury Rune', '🔥', 'damageBonus',     0.25, 'rare'),
+  new Rune('greaterward', 'Greater Ward Rune', '🛡', 'damageReduction', 0.20, 'epic'),
+  new Rune('grandblood',  'Grand Blood Rune',  '🩸', 'lifesteal',       0.05, 'epic'),
+];
+
+// ─────────────────────────────────────────────
 //  Weapon
 // ─────────────────────────────────────────────
 class Weapon {
@@ -80,16 +118,19 @@ class Weapon {
 //  Enemy
 // ─────────────────────────────────────────────
 class Enemy {
-  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = []) {
-    this.name         = name;
-    this.maxHp        = hp;
-    this.hp           = hp;
-    this.damage       = damage;
-    this.expReward    = expReward;
-    this.goldReward   = goldReward;
-    this.gemDropChance = gemDropChance; // 0–1 probability
+  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0) {
+    this.name          = name;
+    this.maxHp         = hp;
+    this.hp            = hp;
+    this.damage        = damage;
+    this.expReward     = expReward;
+    this.goldReward    = goldReward;
+    this.gemDropChance = gemDropChance;  // 0–1 probability
     // dropTable: [{ itemName, dropChance, minAmount, maxAmount }, ...]
-    this.dropTable    = dropTable;
+    this.dropTable     = dropTable;
+    this.runeDropChance = runeDropChance; // 0–1 probability of dropping a rune
+    // runeTier: 0=common only, 1=up to uncommon, 2=up to rare, 3=epic
+    this.runeTier      = runeTier;
   }
 
   // Alias so enemy and player share the same currentHp interface
@@ -143,6 +184,12 @@ class Player {
 
     // The starting weapon is pre-crafted so the player can re-equip it
     this.craftedWeapons.push(this.weapon);
+
+    // ── Rune system ─────────────────────────────────────────────
+    // runeSlots holds equipped rune objects (or null). Up to 3 total sockets.
+    this.runeSlots         = [null, null, null];
+    this.unlockedRuneSlots = 1;   // slot 0 is available from the start
+    this.runeInventory     = [];  // unequipped Rune objects
 
     // ── Death tracking ──────────────────────────────────────────
     this.deathCount = 0;
@@ -268,7 +315,8 @@ class Player {
 
       if (this.regenAccumulator >= 1) {
         this.regenAccumulator -= 1;
-        const healAmount = Math.max(1, Math.floor(this.maxHp * 0.05));
+        const regenRate  = 0.05 + this.getRuneBonus('regenBonus');
+        const healAmount = Math.max(1, Math.floor(this.maxHp * regenRate));
         this.healPlayer(healAmount);
       }
     } else {
@@ -289,9 +337,9 @@ class Player {
     return true;
   }
 
-  // ── Crit chance (0–1) based on dexterity ───────────────────
+  // ── Crit chance (0–1) based on dexterity and rune bonuses ─
   critChance() {
-    return Math.min(0.05 + this.stats.dexterity * 0.01, 0.75);
+    return Math.min(0.05 + this.stats.dexterity * 0.01 + this.getRuneBonus('critChanceBonus'), 0.75);
   }
 
   // ── Base attack damage (with race multiplier) ───────────────
@@ -325,6 +373,73 @@ class Player {
     };
   }
 
+  // ── Sum all equipped rune values for a given effect key ───
+  getRuneBonus(effectKey) {
+    let total = 0;
+    for (let i = 0; i < this.unlockedRuneSlots; i++) {
+      const rune = this.runeSlots[i];
+      if (rune && rune.effect === effectKey) total += rune.value;
+    }
+    return total;
+  }
+
+  // ── Equip a rune from runeInventory into a rune slot ──────
+  // runeIndex: index in this.runeInventory
+  // slotIndex: index in this.runeSlots (must be unlocked)
+  // If the slot is occupied the displaced rune returns to inventory.
+  equipRune(runeIndex, slotIndex) {
+    if (runeIndex < 0 || runeIndex >= this.runeInventory.length) {
+      this._addLog('❌ Invalid rune selection.');
+      return false;
+    }
+    if (slotIndex < 0 || slotIndex >= this.unlockedRuneSlots) {
+      this._addLog('❌ Rune slot is locked or invalid.');
+      return false;
+    }
+    const rune      = this.runeInventory[runeIndex];
+    const displaced = this.runeSlots[slotIndex];
+    this.runeSlots[slotIndex] = rune;
+    this.runeInventory.splice(runeIndex, 1);
+    if (displaced) this.runeInventory.push(displaced);
+    this._addLog(`🔮 Equipped ${rune.name} in slot ${slotIndex + 1}.`);
+    return true;
+  }
+
+  // ── Remove a rune from a slot back into the inventory ─────
+  unequipRune(slotIndex) {
+    if (slotIndex < 0 || slotIndex >= this.unlockedRuneSlots) {
+      this._addLog('❌ Rune slot is locked or invalid.');
+      return false;
+    }
+    const rune = this.runeSlots[slotIndex];
+    if (!rune) {
+      this._addLog('❌ No rune in that slot.');
+      return false;
+    }
+    this.runeSlots[slotIndex] = null;
+    this.runeInventory.push(rune);
+    this._addLog(`🔮 Unequipped ${rune.name} from slot ${slotIndex + 1}.`);
+    return true;
+  }
+
+  // ── Attempt to drop a rune from a defeated enemy ──────────
+  // Returns the dropped Rune object or null if no drop occurred.
+  rollRuneDrop(enemy) {
+    if (!enemy.runeDropChance || enemy.runeDropChance <= 0) return null;
+    // Luck adds up to the cap, but never reduces the base drop chance below itself.
+    const runeChance = Math.min(
+      enemy.runeDropChance + this.stats.luck * 0.002,
+      Math.max(enemy.runeDropChance, 0.15),
+    );
+    if (Math.random() >= runeChance) return null;
+    const eligible = RUNES.filter(r => RARITY_ORDER.indexOf(r.rarity) <= enemy.runeTier);
+    if (eligible.length === 0) return null;
+    const dropped = eligible[Math.floor(Math.random() * eligible.length)];
+    this.runeInventory.push(dropped);
+    this._addLog(`🔮 ${dropped.name} dropped! (${dropped.rarity} rune)`, 'drop');
+    return dropped;
+  }
+
   // ── Consume a Race Reroll from inventory and re-roll race ──
   useRaceReroll() {
     if (!this.inventory['Race Reroll'] || this.inventory['Race Reroll'] <= 0) {
@@ -347,7 +462,7 @@ class Player {
       this._addLog(`You missed ${enemy.name}!`);
       return 0;
     }
-    let damage = this.baseDamage() * timingMultiplier;
+    let damage = this.baseDamage() * (1 + this.getRuneBonus('damageBonus')) * timingMultiplier;
     const isCrit = Math.random() < this.critChance();
     if (isCrit) {
       damage *= 2;
@@ -356,6 +471,17 @@ class Player {
     damage = Math.max(1, Math.round(damage));
     enemy.hp = Math.max(0, enemy.hp - damage);
     this._addLog(`You hit ${enemy.name} for ${damage} damage. (${enemy.hp}/${enemy.maxHp} HP left)`);
+
+    // Lifesteal – heal a portion of damage dealt
+    const lifesteal = this.getRuneBonus('lifesteal');
+    if (lifesteal > 0 && this.currentHp < this.maxHp) {
+      const healAmt = Math.floor(damage * lifesteal);
+      if (healAmt > 0) {
+        this.healPlayer(healAmt);
+        this._addLog(`🩸 Lifesteal restored ${healAmt} HP. (${this.currentHp}/${this.maxHp} HP)`, 'lifesteal');
+      }
+    }
+
     return damage;
   }
 
@@ -371,6 +497,8 @@ class Player {
       Math.floor(enemy.goldReward * (1 + ENEMY_SCALE_GOLD    * lvl)),
       enemy.gemDropChance,
       enemy.dropTable,
+      enemy.runeDropChance,
+      enemy.runeTier,
     );
     return scaled;
   }
@@ -386,8 +514,11 @@ class Player {
 
       if (!scaledEnemy.isAlive()) break;
 
-      // Enemy hits back – percentage-based reduction capped at 60%
-      const damageReduction = Math.min(this.stats.vitality / (this.stats.vitality + 50), 0.60);
+      // Enemy hits back – percentage-based reduction, capped at 75% (vitality + rune bonus)
+      const damageReduction = Math.min(
+        this.stats.vitality / (this.stats.vitality + 50) + this.getRuneBonus('damageReduction'),
+        0.75
+      );
       const dmgTaken = Math.max(1, Math.round(scaledEnemy.damage * (1 - damageReduction)));
       this.takeDamage(dmgTaken);
     }
@@ -397,9 +528,11 @@ class Player {
 
   // ── Collect rewards after defeating an enemy ───────────────
   _collectRewards(enemy) {
-    this.gainExp(enemy.expReward);
-    this.gold += enemy.goldReward;
-    this._addLog(`+${enemy.goldReward} gold. Total gold: ${this.gold}`);
+    const expGained = Math.floor(enemy.expReward * (1 + this.getRuneBonus('expBonus')));
+    this.gainExp(expGained);
+    const goldGained = Math.floor(enemy.goldReward * (1 + this.getRuneBonus('goldBonus')));
+    this.gold += goldGained;
+    this._addLog(`+${goldGained} gold. Total gold: ${this.gold}`);
 
     // Gem drop – luck increases the chance
     const gemChance = Math.min(enemy.gemDropChance + this.stats.luck * 0.005, 0.9);
@@ -407,6 +540,9 @@ class Player {
       this.gems++;
       this._addLog(`💎 Gem dropped! Total gems: ${this.gems}`);
     }
+
+    // Rune drop
+    this.rollRuneDrop(enemy);
 
     // Race Reroll drop – base 5%, +0.1% per luck point
     if (Math.random() < getRerollDropChance(this.stats.luck)) {
@@ -517,31 +653,31 @@ class Player {
 const ENEMIES = [
   new Enemy('Slime',        30,  5,  25,  10, 0.05, [
     { itemName: 'Slime Gel',      dropChance: 0.50, minAmount: 1, maxAmount: 3 },
-  ]),
+  ], 0.01, 0),
   new Enemy('Goblin',       55, 10,  56,  25, 0.10, [
     { itemName: 'Broken Dagger',  dropChance: 0.30, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 1, maxAmount: 2 },
-  ]),
+  ], 0.02, 0),
   new Enemy('Skeleton',     80, 14,  88,  45, 0.12, [
     { itemName: 'Bone Fragment',  dropChance: 0.40, minAmount: 1, maxAmount: 3 },
     { itemName: 'Iron Ore',       dropChance: 0.25, minAmount: 1, maxAmount: 2 },
-  ]),
+  ], 0.03, 1),
   new Enemy('Orc',         100, 18, 113,  60, 0.15, [
     { itemName: 'Iron Ore',       dropChance: 0.35, minAmount: 2, maxAmount: 4 },
     { itemName: 'Wood',           dropChance: 0.25, minAmount: 1, maxAmount: 3 },
-  ]),
+  ], 0.04, 1),
   new Enemy('Troll',       180, 28, 213, 120, 0.20, [
     { itemName: 'Troll Hide',     dropChance: 0.40, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.30, minAmount: 2, maxAmount: 4 },
-  ]),
+  ], 0.05, 2),
   new Enemy('Dark Knight', 250, 40, 313, 180, 0.30, [
     { itemName: 'Dark Steel',     dropChance: 0.35, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 2, maxAmount: 3 },
-  ]),
+  ], 0.06, 2),
   new Enemy('Dragon Boss', 500, 60, 750, 400, 0.50, [
     { itemName: 'Dragon Scale',   dropChance: 0.50, minAmount: 1, maxAmount: 3 },
     { itemName: 'Dark Steel',     dropChance: 0.40, minAmount: 2, maxAmount: 4 },
-  ]),
+  ], 0.08, 3),
 ];
 
 const WEAPONS = [
@@ -667,5 +803,5 @@ class Companion {
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance };
+  module.exports = { Player, Enemy, Weapon, Rune, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER };
 }

@@ -1449,3 +1449,100 @@ h1 {
   gap: 6px;
   flex-shrink: 0;
 }
+
+/* ── Rune tab ── */
+
+.rune-intro {
+  font-size: 0.82rem;
+  color: #8888aa;
+  margin: 0 0 12px;
+}
+
+/* Rune slot row */
+#rune-slots {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.rune-slot {
+  width: 110px;
+  min-height: 90px;
+  border-radius: 50%;
+  background: #1a1a36;
+  border: 2px solid #4444aa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  font-size: 0.78rem;
+  box-sizing: border-box;
+}
+
+.rune-slot:hover:not(.locked) { background: #252550; border-color: #8888ff; box-shadow: 0 0 10px rgba(136,136,255,0.3); }
+.rune-slot.locked  { border-style: dashed; border-color: #333366; cursor: pointer; opacity: 0.75; }
+.rune-slot.occupied { border-color: #aa66ff; }
+
+.rune-slot-emoji    { font-size: 1.6rem; line-height: 1; margin-bottom: 4px; }
+.rune-slot-name     { font-size: 0.7rem; font-weight: bold; }
+.rune-slot-effect   { font-size: 0.68rem; color: #aaaacc; margin-top: 2px; }
+.rune-slot-empty    { color: #555577; font-size: 0.72rem; }
+.rune-slot-lock     { font-size: 1.4rem; line-height: 1; }
+.rune-slot-unlock-cost { font-size: 0.68rem; margin-top: 4px; }
+
+.rune-unequip-btn {
+  background: transparent;
+  border: none;
+  color: #ff6666;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0;
+  margin-top: 3px;
+  line-height: 1;
+}
+.rune-unequip-btn:hover { color: #ff4444; }
+
+/* Rune inventory list */
+#rune-inventory-section h3 { margin: 0 0 8px; }
+
+#rune-inventory-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.rune-inventory-item {
+  background: #1e1e3e;
+  border: 1px solid #3a3a7a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  min-width: 170px;
+}
+.rune-inventory-item:hover { background: #252545; border-color: #8888ff; }
+.rune-inventory-item.selected { background: #2a2a60; border-color: #bb88ff; box-shadow: 0 0 8px rgba(187,136,255,0.4); }
+
+/* Rarity border accents on rune inventory items */
+.rune-inventory-item.rarity-border-common    { border-left: 3px solid #888888; }
+.rune-inventory-item.rarity-border-uncommon  { border-left: 3px solid #66cc44; }
+.rune-inventory-item.rarity-border-rare      { border-left: 3px solid #4499ff; }
+.rune-inventory-item.rarity-border-epic      { border-left: 3px solid #cc66ff; }
+
+.rune-inv-emoji  { font-size: 1.2rem; flex-shrink: 0; }
+.rune-inv-name   { font-weight: bold; }
+.rune-inv-effect { font-size: 0.72rem; color: #aaaacc; margin-left: auto; padding-left: 6px; }
+
+/* Combat log – lifesteal entries */
+#log-box .log-entry.lifesteal { color: #88ffaa; }
