@@ -612,20 +612,37 @@ const CRAFTING_RECIPES = [
 //  Companion
 // ─────────────────────────────────────────────
 class Companion {
-  constructor(name = 'Familiar', emoji = '🦊') {
+  constructor(name = 'Companion', emoji = '🦊') {
     this.name           = name;
     this.emoji          = emoji;
     this.level          = 0;    // 0 = locked; purchase to unlock at level 1
+    this.exp            = 0;
+    this.expToNextLevel = this._calcExpThreshold(1);
     this.attackInterval = 2.5;  // seconds between auto-attacks
     this._attackTimer   = 0;
   }
 
-  // Returns true if the familiar has been purchased/unlocked.
+  // Returns true if the companion has been purchased/unlocked.
   get isUnlocked() { return this.level > 0; }
 
   // Damage scales with the companion's own level.
   attackDamage() {
     return Math.max(1, Math.floor(this.level * 3 + 5));
+  }
+
+  // Gain EXP and trigger level-ups.
+  gainExp(amount) {
+    if (!this.isUnlocked) return;
+    this.exp += amount;
+    while (this.exp >= this.expToNextLevel) {
+      this.exp -= this.expToNextLevel;
+      this.level++;
+      this.expToNextLevel = this._calcExpThreshold(this.level);
+    }
+  }
+
+  _calcExpThreshold(level) {
+    return Math.floor(80 * Math.pow(level, 1.3));
   }
 
   // Advance the internal timer; returns true when it is time to attack.

@@ -29,7 +29,7 @@
       <div id="companion-section">
         <div id="companion-sprite">🦊</div>
         <div id="companion-info">
-          <span id="companion-name-label">Familiar</span>
+          <span id="companion-name-label">Companion</span>
           <span id="companion-level-label">Lv. 1</span>
         </div>
       </div>
@@ -746,6 +746,7 @@ function endFight() {
 
   // Collect rewards
   player.gainExp(currentEnemy.expReward);
+  if (companion.isUnlocked) companion.gainExp(currentEnemy.expReward);
   player.gold += currentEnemy.goldReward;
   onGameLog(`+${currentEnemy.goldReward} gold! Total: ${player.gold}`);
 
@@ -768,6 +769,7 @@ function endFight() {
   elTimingResult.style.color = '#f0c040';
   currentEnemy.reset();
   refreshPlayerUI();
+  refreshCompanionUI();
   updateHealthBars();
   showTabBadge('inventory');
 
@@ -854,7 +856,7 @@ function refreshCompanionUI() {
   const lvlLabel = document.getElementById('companion-level-label');
   const sprite   = document.getElementById('companion-sprite');
   if (companion.isUnlocked) {
-    lvlLabel.textContent  = 'Lv. ' + companion.level;
+    lvlLabel.textContent  = `Lv. ${companion.level} (${companion.exp}/${companion.expToNextLevel} EXP)`;
     sprite.style.opacity  = '1';
   } else {
     lvlLabel.textContent  = 'Locked';
@@ -1126,8 +1128,8 @@ document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
 });
 
 // ── Upgrades tab ──────────────────────────────────────────────
-const FAMILIAR_COST_GOLD  = 7500;
-const FAMILIAR_COST_GEMS  = 15;
+const FAMILIAR_COST_GOLD  = 3500;
+const FAMILIAR_COST_GEMS  = 10;
 const MERCHANT_COST_GOLD  = 500;
 const MERCHANT_COST_GEMS  = 1;
 
@@ -1148,8 +1150,8 @@ function renderUpgradesTab() {
     card.innerHTML =
       `<div class="upgrade-card upgrade-owned">` +
         `<div class="upgrade-icon">🦊</div>` +
-        `<div class="upgrade-name">Familiar</div>` +
-        `<div class="upgrade-desc">Your familiar fights alongside you! (Lv. ${companion.level})</div>` +
+        `<div class="upgrade-name">Companion</div>` +
+        `<div class="upgrade-desc">Your companion fights alongside you! (Lv. ${companion.level})</div>` +
       `</div>`;
   } else {
     const enoughGold = player.gold >= FAMILIAR_COST_GOLD;
@@ -1159,13 +1161,13 @@ function renderUpgradesTab() {
     card.innerHTML =
       `<div class="upgrade-card">` +
         `<div class="upgrade-icon">🦊</div>` +
-        `<div class="upgrade-name">Familiar</div>` +
-        `<div class="upgrade-desc">Unlock a loyal familiar that auto-attacks enemies every few seconds.</div>` +
+        `<div class="upgrade-name">Companion</div>` +
+        `<div class="upgrade-desc">Unlock a loyal companion that auto-attacks enemies every few seconds.</div>` +
         `<div class="upgrade-cost">` +
           `<span class="mat${enoughGold ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold} / ${FAMILIAR_COST_GOLD} gold</span>` +
           `<span class="mat${enoughGems  ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}  / ${FAMILIAR_COST_GEMS} gems</span>` +
         `</div>` +
-        `<button class="btn" id="btn-buy-familiar" ${canAfford ? '' : 'disabled'}>Purchase Familiar</button>` +
+        `<button class="btn" id="btn-buy-familiar" ${canAfford ? '' : 'disabled'}>Purchase Companion</button>` +
       `</div>`;
 
     document.getElementById('btn-buy-familiar').addEventListener('click', () => {
@@ -1173,7 +1175,7 @@ function renderUpgradesTab() {
       player.gold -= FAMILIAR_COST_GOLD;
       player.gems -= FAMILIAR_COST_GEMS;
       companion.level = 1;
-      onGameLog('🦊 Familiar unlocked! Your familiar joins the fight!');
+      onGameLog('🦊 Companion unlocked! Your companion joins the fight!');
       refreshPlayerUI();
       renderUpgradesTab();
     });
