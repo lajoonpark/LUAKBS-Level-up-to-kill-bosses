@@ -52,6 +52,16 @@ function getRerollDropChance(luck) {
 }
 
 // ─────────────────────────────────────────────
+//  Enemy scaling factors (applied per player level)
+// ─────────────────────────────────────────────
+// HP and gold grow at 5% per level; EXP grows slightly faster (6%) so that
+// levelling up feels increasingly rewarding as the player fights tougher enemies.
+const ENEMY_SCALE_HP        = 0.05;
+const ENEMY_SCALE_DAMAGE    = 0.04;
+const ENEMY_SCALE_EXP       = 0.06;
+const ENEMY_SCALE_GOLD      = 0.05;
+
+// ─────────────────────────────────────────────
 //  Weapon
 // ─────────────────────────────────────────────
 class Weapon {
@@ -144,9 +154,9 @@ class Player {
     return Math.floor(this.stats.vitality * 10 * RACES[this.race].healthMultiplier);
   }
 
-  // ── Scaling formula: base 100 * level^1.5 ──────────────────
+  // ── Scaling formula: base 80 * level^1.3 (gentler mid-game curve) ──
   _calcExpThreshold(level) {
-    return Math.floor(100 * Math.pow(level, 1.5));
+    return Math.floor(80 * Math.pow(level, 1.3));
   }
 
   // ── Gain EXP and trigger level-ups ─────────────────────────
@@ -330,22 +340,40 @@ class Player {
     return damage;
   }
 
+  // ── Scale an enemy's stats based on the player's current level ──
+  // Returns a temporary Enemy-like object; the original is never mutated.
+  _scaleEnemy(enemy) {
+    const lvl = this.level;
+    const scaled = new Enemy(
+      enemy.name,
+      Math.floor(enemy.maxHp      * (1 + ENEMY_SCALE_HP     * lvl)),
+      Math.floor(enemy.damage     * (1 + ENEMY_SCALE_DAMAGE  * lvl)),
+      Math.floor(enemy.expReward  * (1 + ENEMY_SCALE_EXP    * lvl)),
+      Math.floor(enemy.goldReward * (1 + ENEMY_SCALE_GOLD    * lvl)),
+      enemy.gemDropChance,
+      enemy.dropTable,
+    );
+    return scaled;
+  }
+
   // ── Full fight against one enemy (no timing; auto-combat) ──
   fightEnemy(enemy) {
-    enemy.reset();
-    this._addLog(`⚔ Battle started: ${this.name} vs ${enemy.name}`);
+    const scaledEnemy = this._scaleEnemy(enemy);
+    scaledEnemy.reset();
+    this._addLog(`⚔ Battle started: ${this.name} vs ${scaledEnemy.name}`);
 
-    while (enemy.isAlive()) {
-      this.attackEnemy(enemy, 1.0);
+    while (scaledEnemy.isAlive()) {
+      this.attackEnemy(scaledEnemy, 1.0);
 
-      if (!enemy.isAlive()) break;
+      if (!scaledEnemy.isAlive()) break;
 
-      // Enemy hits back
-      const dmgTaken = Math.max(1, enemy.damage - Math.floor(this.stats.vitality * 0.5));
+      // Enemy hits back – percentage-based reduction capped at 60%
+      const damageReduction = Math.min(this.stats.vitality / (this.stats.vitality + 50), 0.60);
+      const dmgTaken = Math.max(1, Math.round(scaledEnemy.damage * (1 - damageReduction)));
       this.takeDamage(dmgTaken);
     }
 
-    this._collectRewards(enemy);
+    this._collectRewards(scaledEnemy);
   }
 
   // ── Collect rewards after defeating an enemy ───────────────
@@ -468,30 +496,30 @@ class Player {
 //  Sample data
 // ─────────────────────────────────────────────
 const ENEMIES = [
-  new Enemy('Slime',        30,  5,  20,  10, 0.05, [
+  new Enemy('Slime',        30,  5,  25,  10, 0.05, [
     { itemName: 'Slime Gel',      dropChance: 0.50, minAmount: 1, maxAmount: 3 },
   ]),
-  new Enemy('Goblin',       55, 10,  45,  25, 0.10, [
+  new Enemy('Goblin',       55, 10,  56,  25, 0.10, [
     { itemName: 'Broken Dagger',  dropChance: 0.30, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 1, maxAmount: 2 },
   ]),
-  new Enemy('Skeleton',     80, 14,  70,  45, 0.12, [
+  new Enemy('Skeleton',     80, 14,  88,  45, 0.12, [
     { itemName: 'Bone Fragment',  dropChance: 0.40, minAmount: 1, maxAmount: 3 },
     { itemName: 'Iron Ore',       dropChance: 0.25, minAmount: 1, maxAmount: 2 },
   ]),
-  new Enemy('Orc',         100, 18,  90,  60, 0.15, [
+  new Enemy('Orc',         100, 18, 113,  60, 0.15, [
     { itemName: 'Iron Ore',       dropChance: 0.35, minAmount: 2, maxAmount: 4 },
     { itemName: 'Wood',           dropChance: 0.25, minAmount: 1, maxAmount: 3 },
   ]),
-  new Enemy('Troll',       180, 28, 170, 120, 0.20, [
+  new Enemy('Troll',       180, 28, 213, 120, 0.20, [
     { itemName: 'Troll Hide',     dropChance: 0.40, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.30, minAmount: 2, maxAmount: 4 },
   ]),
-  new Enemy('Dark Knight', 250, 40, 250, 180, 0.30, [
+  new Enemy('Dark Knight', 250, 40, 313, 180, 0.30, [
     { itemName: 'Dark Steel',     dropChance: 0.35, minAmount: 1, maxAmount: 2 },
     { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 2, maxAmount: 3 },
   ]),
-  new Enemy('Dragon Boss', 500, 60, 600, 400, 0.50, [
+  new Enemy('Dragon Boss', 500, 60, 750, 400, 0.50, [
     { itemName: 'Dragon Scale',   dropChance: 0.50, minAmount: 1, maxAmount: 3 },
     { itemName: 'Dark Steel',     dropChance: 0.40, minAmount: 2, maxAmount: 4 },
   ]),
@@ -514,10 +542,10 @@ const CRAFTING_RECIPES = [
     name: 'Iron Sword',
     weapon: { name: 'Iron Sword', baseDamage: 25, rarity: 'uncommon' },
     materials: [
-      { itemName: 'Iron Ore', amount: 5 },
+      { itemName: 'Iron Ore', amount: 3 },
       { itemName: 'Wood',     amount: 2 },
     ],
-    goldCost: 300,
+    goldCost: 100,
     gemsCost: 0,
   },
   {
@@ -525,9 +553,9 @@ const CRAFTING_RECIPES = [
     weapon: { name: 'Bone Blade', baseDamage: 35, rarity: 'uncommon' },
     materials: [
       { itemName: 'Bone Fragment', amount: 4 },
-      { itemName: 'Iron Ore',      amount: 3 },
+      { itemName: 'Iron Ore',      amount: 2 },
     ],
-    goldCost: 50,
+    goldCost: 200,
     gemsCost: 0,
   },
   {
@@ -535,9 +563,9 @@ const CRAFTING_RECIPES = [
     weapon: { name: 'Troll Crusher', baseDamage: 50, rarity: 'rare' },
     materials: [
       { itemName: 'Troll Hide', amount: 3 },
-      { itemName: 'Iron Ore',   amount: 5 },
+      { itemName: 'Iron Ore',   amount: 4 },
     ],
-    goldCost: 500,
+    goldCost: 450,
     gemsCost: 0,
   },
   {
@@ -547,8 +575,8 @@ const CRAFTING_RECIPES = [
       { itemName: 'Dark Steel', amount: 4 },
       { itemName: 'Troll Hide', amount: 2 },
     ],
-    goldCost: 800,
-    gemsCost: 0,
+    goldCost: 700,
+    gemsCost: 1,
   },
   {
     name: 'Dragon Fang',
@@ -557,8 +585,8 @@ const CRAFTING_RECIPES = [
       { itemName: 'Dragon Scale', amount: 3 },
       { itemName: 'Dark Steel',   amount: 4 },
     ],
-    goldCost: 1500,
-    gemsCost: 2,
+    goldCost: 1200,
+    gemsCost: 3,
   },
 ];
 
@@ -570,17 +598,16 @@ class Companion {
     this.name           = name;
     this.emoji          = emoji;
     this.level          = 0;    // 0 = locked; purchase to unlock at level 1
-    this.attackInterval = 3.5;  // seconds between auto-attacks
+    this.attackInterval = 2.5;  // seconds between auto-attacks
     this._attackTimer   = 0;
   }
 
   // Returns true if the familiar has been purchased/unlocked.
   get isUnlocked() { return this.level > 0; }
 
-  // Damage scales with the companion's own level (roughly 25–30% of
-  // a level-1 player's base damage, growing steadily as the familiar levels).
+  // Damage scales with the companion's own level.
   attackDamage() {
-    return Math.max(1, Math.floor(this.level * 2 + 3));
+    return Math.max(1, Math.floor(this.level * 3 + 5));
   }
 
   // Advance the internal timer; returns true when it is time to attack.

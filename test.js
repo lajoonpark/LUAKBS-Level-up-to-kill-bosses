@@ -202,9 +202,9 @@ assert(ph.hasMaterials(recipe) === false,                      'hasMaterials fal
 // ─────────────────────────────────────────────
 section('craftItem');
 const pc = new Player();
-pc.addItemToInventory('Iron Ore', 5);
+pc.addItemToInventory('Iron Ore', 3);
 pc.addItemToInventory('Wood', 2);
-pc.gold = 300;
+pc.gold = 100;
 const ironRecipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
 const crafted = pc.craftItem(ironRecipe);
 assert(crafted instanceof Weapon,                              'craftItem returns a Weapon');
@@ -262,9 +262,9 @@ assert(wsU.isCrafted === false,                               'getWeaponStats is
 // ─────────────────────────────────────────────
 section('craftWeapon');
 const pcr = new Player();
-pcr.addItemToInventory('Iron Ore', 5);
+pcr.addItemToInventory('Iron Ore', 3);
 pcr.addItemToInventory('Wood', 2);
-pcr.gold = 300;
+pcr.gold = 100;
 const ironRecipe2 = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
 const craftedAndEquipped = pcr.craftWeapon(ironRecipe2);
 assert(craftedAndEquipped instanceof Weapon,                   'craftWeapon returns a Weapon');
