@@ -19,9 +19,20 @@
   <div id="stats-panel" class="panel">
     <h2>Player</h2>
 
-    <div class="stat-row">
-      <span id="player-name">Hero</span>
-      <span>Lv. <span id="player-level">1</span></span>
+    <div id="player-companion-row">
+      <div class="stat-row">
+        <span id="player-name">Hero</span>
+        <span>Lv. <span id="player-level">1</span></span>
+      </div>
+
+      <!-- ── Companion (AI, 32×32, animated, sits beside player) ── -->
+      <div id="companion-section">
+        <div id="companion-sprite">🦊</div>
+        <div id="companion-info">
+          <span id="companion-name-label">Familiar</span>
+          <span id="companion-level-label">Lv. 1</span>
+        </div>
+      </div>
     </div>
 
     <div id="exp-bar-wrap"><div id="exp-bar"></div><span id="exp-label">EXP: 0 / 100</span></div>
@@ -238,6 +249,7 @@ const ENEMY_TIERS = ['tier-easy','tier-easy','tier-medium','tier-medium','tier-h
 
 // ── Game state ──────────────────────────────────────────────
 const player      = new Player('Hero');
+const companion   = new Companion();
 let currentEnemy  = null;
 let battleOver    = false;
 let missPenalty   = false;  // true while miss-delay is active
@@ -277,6 +289,11 @@ timingBar.onTick = (pos, delta) => {
   if (delta && delta > 0) {
     player.updateRegen(delta);
     refreshPlayerHpUI();
+    if (!battleOver && currentEnemy && currentEnemy.isAlive()) {
+      if (companion.tick(delta) && !battleOver) {
+        companionAttack();
+      }
+    }
   }
 };
 
@@ -333,6 +350,7 @@ function refreshPlayerUI() {
   displayCraftingMenu();
   updateStatsDisplay();
   refreshPlayerHpUI();
+  refreshCompanionUI();
 }
 
 function refreshEnemyUI() {
@@ -590,6 +608,7 @@ function startFight(enemy) {
   currentEnemy = enemy;
   battleOver   = false;
   missPenalty  = false;
+  companion.resetTimer();
   elBtnAttack.disabled = false;
   elTimingResult.textContent  = '';
   elDamageDisplay.textContent = '';
@@ -685,6 +704,29 @@ function enemyAttack() {
   const rawDamage = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
   takeDamage(player, rawDamage);
   checkBattleEnd();
+}
+
+// Companion auto-attacks the current enemy (called by the RAF tick)
+function companionAttack() {
+  if (!currentEnemy || !currentEnemy.isAlive() || battleOver) return;
+  const rawDmg = companion.attackDamage(player.level);
+  const actual = applyVariation(rawDmg);
+  currentEnemy.currentHp = Math.max(0, currentEnemy.currentHp - actual);
+  onGameLog(`🦊 ${companion.name} strikes ${currentEnemy.name} for ${actual} damage! (${currentEnemy.currentHp}/${currentEnemy.maxHp} HP)`);
+  updateHealthBars();
+
+  const sprite = document.getElementById('companion-sprite');
+  sprite.classList.remove('companion-attacking');
+  void sprite.offsetWidth;
+  sprite.classList.add('companion-attacking');
+  setTimeout(() => sprite.classList.remove('companion-attacking'), 450);
+
+  checkBattleEnd();
+}
+
+// Keep the companion level label in sync with the player's level
+function refreshCompanionUI() {
+  document.getElementById('companion-level-label').textContent = 'Lv. ' + player.level;
 }
 
 // Player attacks the current enemy (called on Attack button press)

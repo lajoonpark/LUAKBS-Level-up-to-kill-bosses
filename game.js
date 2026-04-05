@@ -563,8 +563,42 @@ const CRAFTING_RECIPES = [
 ];
 
 // ─────────────────────────────────────────────
+//  Companion
+// ─────────────────────────────────────────────
+class Companion {
+  constructor(name = 'Familiar', emoji = '🦊') {
+    this.name           = name;
+    this.emoji          = emoji;
+    this.attackInterval = 3.5;  // seconds between auto-attacks
+    this._attackTimer   = 0;
+  }
+
+  // Damage scales with the player's current level (roughly 25–30% of
+  // a level-1 player's base damage, growing steadily as the player levels).
+  attackDamage(playerLevel) {
+    return Math.max(1, Math.floor(playerLevel * 2 + 3));
+  }
+
+  // Advance the internal timer; returns true when it is time to attack.
+  // Using reset-to-zero on fire prevents cascading attacks after a lag spike.
+  tick(deltaTime) {
+    this._attackTimer += deltaTime;
+    if (this._attackTimer >= this.attackInterval) {
+      this._attackTimer = 0;
+      return true;
+    }
+    return false;
+  }
+
+  // Reset the attack cooldown (call when a new fight begins).
+  resetTimer() {
+    this._attackTimer = 0;
+  }
+}
+
+// ─────────────────────────────────────────────
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance };
+  module.exports = { Player, Enemy, Weapon, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance };
 }

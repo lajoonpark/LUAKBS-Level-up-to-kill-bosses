@@ -75,6 +75,74 @@ h1 {
   margin-bottom: 2px;
 }
 
+/* ── Player + companion side-by-side row ── */
+#player-companion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#player-companion-row .stat-row {
+  flex: 1;
+}
+
+/* ── Companion widget ── */
+#companion-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f0f22;
+  border: 1px solid #2a2a50;
+  border-radius: 8px;
+  padding: 4px 7px;
+  flex-shrink: 0;
+}
+
+#companion-sprite {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  line-height: 32px;
+  text-align: center;
+  display: block;
+  animation: companion-idle 3s ease-in-out infinite;
+}
+
+#companion-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+#companion-name-label {
+  font-size: 0.75rem;
+  color: #a0c0ff;
+  font-weight: 600;
+}
+
+#companion-level-label {
+  font-size: 0.7rem;
+  color: #f0c040;
+}
+
+.companion-attacking {
+  animation: companion-attack 0.45s ease-out forwards !important;
+}
+
+@keyframes companion-idle {
+  0%, 100% { transform: scale(1)    translateY(0); }
+  50%       { transform: scale(1.06) translateY(-2px); }
+}
+
+@keyframes companion-attack {
+  0%   { transform: scale(1)   translateX(0); }
+  30%  { transform: scale(1.35) translateX(12px); }
+  60%  { transform: scale(0.9)  translateX(-4px); }
+  100% { transform: scale(1)   translateX(0); }
+}
+
+
 /* ── Player stats ── */
 #stats-panel .stat-row {
   display: flex;
