@@ -551,6 +551,7 @@ function displayCraftingMenu() {
 function displayEnemyList() {
   elEnemySelectPanel.style.display = 'block';
   elEnemyPanel.style.display       = 'none';
+  elBtnAttack.disabled             = true;
   buildEnemyList();
 }
 
@@ -686,6 +687,7 @@ function updateHealthBars() {
 
 // Check whether either combatant has been defeated – returns true if battle ended
 function checkBattleEnd() {
+  if (!currentEnemy) return false;
   if (!currentEnemy.isAlive()) {
     endFight();
     return true;
@@ -699,7 +701,7 @@ function checkBattleEnd() {
 
 // Enemy retaliates against the player
 function enemyAttack() {
-  if (!currentEnemy.isAlive() || battleOver) return;
+  if (!currentEnemy || !currentEnemy.isAlive() || battleOver) return;
   const rawDamage = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
   takeDamage(player, rawDamage);
   checkBattleEnd();
@@ -730,6 +732,7 @@ function refreshCompanionUI() {
 
 // Player attacks the current enemy (called on Attack button press)
 function playerAttack() {
+  if (!currentEnemy) return;
   if (battleOver || missPenalty) return;
 
   // Flash the timing bar on click
