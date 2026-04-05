@@ -340,12 +340,12 @@ function switchTab(tabName) {
 }
 
 function showTabBadge(tabName) {
-  const badge = document.getElementById('tab-badge-' + tabName);
+  const badge = document.getElementById(`tab-badge-${tabName}`);
   if (badge) badge.classList.add('visible');
 }
 
 function clearTabBadge(tabName) {
-  const badge = document.getElementById('tab-badge-' + tabName);
+  const badge = document.getElementById(`tab-badge-${tabName}`);
   if (badge) badge.classList.remove('visible');
 }
 
@@ -1061,15 +1061,15 @@ document.getElementById('btn-respawn-camp').addEventListener('click', () => {
   displayEnemyList();
 });
 
-// ── Tier filter ───────────────────────────────────────────────
-document.querySelectorAll('.tier-filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tier-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tier = btn.dataset.tier;
-    document.querySelectorAll('#enemy-list .enemy-card').forEach(card => {
-      card.style.display = (tier === 'all' || card.classList.contains(tier)) ? '' : 'none';
-    });
+// ── Tier filter (event delegation) ───────────────────────────
+document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tier-filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tier-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const tier = btn.dataset.tier;
+  document.querySelectorAll('#enemy-list .enemy-card').forEach(card => {
+    card.style.display = (tier === 'all' || card.classList.contains(tier)) ? '' : 'none';
   });
 });
 
