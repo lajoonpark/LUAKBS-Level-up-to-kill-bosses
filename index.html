@@ -626,8 +626,9 @@ function displayInventory() {
 function displayCraftingMenu() {
   const list = document.getElementById('crafting-list');
   list.innerHTML = '';
+  const craftedNames = new Set(player.craftedWeapons.map(w => w.name));
   CRAFTING_RECIPES.forEach((recipe) => {
-    if (player.craftedWeapons.some(w => w.name === recipe.weapon.name)) return;
+    if (craftedNames.has(recipe.weapon.name)) return;
     const canCraft = player.hasMaterials(recipe);
     const card = document.createElement('div');
     card.className = 'craft-card' + (canCraft ? ' craftable' : '');
