@@ -481,12 +481,12 @@ h1 {
   animation: none;
 }
 
-#btn-next-enemy {
+#btn-change-enemy {
   background: linear-gradient(135deg, #336699, #5599cc);
   color: #fff;
   width: 100%;
 }
-#btn-next-enemy:hover { background: linear-gradient(135deg, #4477aa, #66aadd); }
+#btn-change-enemy:hover { background: linear-gradient(135deg, #4477aa, #66aadd); }
 
 /* ── Weapon shop ── */
 #shop-panel { grid-column: 1 / -1; }
