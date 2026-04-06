@@ -941,7 +941,7 @@ assert(noDodgeEnemy.dodgeChance === 0,                       'dodgeChance defaul
 section('Enemy – dodge blocks player attack');
 const pDodge = new Player();
 // Force 100% dodge – attack should always return 0
-const fullDodgeEnemy = new Enemy('Ghost', 1000, 0, 0, 0, 0, [], 0, 0, 1.0, 'slime');
+const fullDodgeEnemy = new Enemy('Phantom Slime', 1000, 0, 0, 0, 0, [], 0, 0, 1.0, 'slime');
 for (let i = 0; i < 20; i++) {
   const dmg = pDodge.attackEnemy(fullDodgeEnemy, 1.0);
   assert(dmg === 0, `100% dodge enemy takes 0 damage (trial ${i + 1})`);
