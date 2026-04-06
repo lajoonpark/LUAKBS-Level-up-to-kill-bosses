@@ -3,7 +3,7 @@
 //  test.js  –  Simple Node.js test suite (no external deps)
 // ============================================================
 
-const { Player, Enemy, Weapon, Rune, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER } = require('./game.js');
+const { Player, Enemy, Weapon, Rune, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER, WORLDS, getEnemiesForWorld } = require('./game.js');
 
 // ── Minimal assertion helpers ─────────────────────────────────
 let passed = 0;
@@ -185,16 +185,15 @@ assert(noDrops.length === 0,                                   'empty drop table
 // ─────────────────────────────────────────────
 section('hasMaterials');
 const ph = new Player();
-ph.addItemToInventory('Iron Ore', 5);
-ph.addItemToInventory('Wood', 2);
+ph.addItemToInventory('Slime Gel', 5);
 ph.gold = 300;
-const recipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
-assert(recipe !== undefined,                                   'Iron Sword recipe exists');
+const recipe = CRAFTING_RECIPES.find(r => r.name === 'Gel Blade');
+assert(recipe !== undefined,                                   'Gel Blade recipe exists');
 assert(ph.hasMaterials(recipe) === true,                       'hasMaterials true when sufficient');
 ph.gold = 50; // not enough gold
 assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient gold');
 ph.gold = 300;
-ph.inventory['Iron Ore'] = 2; // not enough ore
+ph.inventory['Slime Gel'] = 2; // not enough gel
 assert(ph.hasMaterials(recipe) === false,                      'hasMaterials false when insufficient item');
 
 // ─────────────────────────────────────────────
@@ -202,22 +201,20 @@ assert(ph.hasMaterials(recipe) === false,                      'hasMaterials fal
 // ─────────────────────────────────────────────
 section('craftItem');
 const pc = new Player();
-pc.addItemToInventory('Iron Ore', 3);
-pc.addItemToInventory('Wood', 2);
-pc.gold = 100;
-const ironRecipe = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
-const crafted = pc.craftItem(ironRecipe);
+pc.addItemToInventory('Slime Gel', 5);
+pc.gold = 80;
+const gelRecipe = CRAFTING_RECIPES.find(r => r.name === 'Gel Blade');
+const crafted = pc.craftItem(gelRecipe);
 assert(crafted instanceof Weapon,                              'craftItem returns a Weapon');
-assert(crafted.name === 'Iron Sword',                         'crafted weapon has correct name');
-assert(crafted.baseDamage === ironRecipe.weapon.baseDamage,   'crafted weapon has correct damage');
-assert(crafted.rarity === ironRecipe.weapon.rarity,           'crafted weapon has correct rarity');
+assert(crafted.name === 'Gel Blade',                          'crafted weapon has correct name');
+assert(crafted.baseDamage === gelRecipe.weapon.baseDamage,    'crafted weapon has correct damage');
+assert(crafted.rarity === gelRecipe.weapon.rarity,            'crafted weapon has correct rarity');
 assert(pc.craftedWeapons.includes(crafted),                   'crafted weapon added to craftedWeapons');
-assert((pc.inventory['Iron Ore'] || 0) === 0,                 'materials deducted from inventory');
-assert((pc.inventory['Wood'] || 0) === 0,                     'wood deducted from inventory');
+assert((pc.inventory['Slime Gel'] || 0) === 0,                'materials deducted from inventory');
 assert(pc.gold === 0,                                         'gold deducted');
 
 // Cannot craft without materials
-const failCraft = pc.craftItem(ironRecipe);
+const failCraft = pc.craftItem(gelRecipe);
 assert(failCraft === null,                                     'craftItem returns null when missing materials');
 
 // Damage formula uses crafted weapon
@@ -262,18 +259,17 @@ assert(wsU.isCrafted === false,                               'getWeaponStats is
 // ─────────────────────────────────────────────
 section('craftWeapon');
 const pcr = new Player();
-pcr.addItemToInventory('Iron Ore', 3);
-pcr.addItemToInventory('Wood', 2);
-pcr.gold = 100;
-const ironRecipe2 = CRAFTING_RECIPES.find(r => r.name === 'Iron Sword');
-const craftedAndEquipped = pcr.craftWeapon(ironRecipe2);
+pcr.addItemToInventory('Slime Gel', 5);
+pcr.gold = 80;
+const gelRecipe2 = CRAFTING_RECIPES.find(r => r.name === 'Gel Blade');
+const craftedAndEquipped = pcr.craftWeapon(gelRecipe2);
 assert(craftedAndEquipped instanceof Weapon,                   'craftWeapon returns a Weapon');
-assert(craftedAndEquipped.name === 'Iron Sword',              'craftWeapon crafts the correct weapon');
+assert(craftedAndEquipped.name === 'Gel Blade',               'craftWeapon crafts the correct weapon');
 assert(pcr.weapon === craftedAndEquipped,                      'craftWeapon auto-equips the crafted weapon');
 assert(pcr.checkWeaponCrafted(craftedAndEquipped) === true,   'craftWeapon marks weapon as crafted');
 
 // craftWeapon fails without materials
-const failCraftWeapon = pcr.craftWeapon(ironRecipe2);
+const failCraftWeapon = pcr.craftWeapon(gelRecipe2);
 assert(failCraftWeapon === null,                               'craftWeapon returns null when missing materials');
 
 // ─────────────────────────────────────────────
@@ -925,10 +921,63 @@ ENEMIES.forEach(en => {
   assert(typeof en.runeTier === 'number',       `${en.name} has runeTier`);
   assert(en.runeTier >= 0 && en.runeTier <= 3, `${en.name} runeTier is 0–3`);
 });
-const slimeE = ENEMIES[0];
-const dragonE = ENEMIES[ENEMIES.length - 1];
-assert(slimeE.runeDropChance < dragonE.runeDropChance, 'Dragon Boss has higher runeDropChance than Slime');
-assert(slimeE.runeTier < dragonE.runeTier,             'Dragon Boss has higher runeTier than Slime');
+const slimeE  = ENEMIES[0];
+const kingSlimeE = ENEMIES[ENEMIES.length - 1];
+assert(slimeE.runeDropChance < kingSlimeE.runeDropChance, 'King Slime has higher runeDropChance than Slime');
+assert(slimeE.runeTier < kingSlimeE.runeTier,             'King Slime has higher runeTier than Slime');
+
+// ─────────────────────────────────────────────
+//  Enemy dodge mechanic
+// ─────────────────────────────────────────────
+section('Enemy – dodgeChance field');
+const dodgeEnemy = new Enemy('DodgeDummy', 100, 10, 0, 0, 0, [], 0, 0, 0.5, 'slime');
+assert(typeof dodgeEnemy.dodgeChance === 'number',           'enemy has dodgeChance field');
+assert(dodgeEnemy.dodgeChance === 0.5,                       'dodgeChance set correctly');
+
+section('Enemy – dodge default is 0');
+const noDodgeEnemy = new Enemy('NoDodge', 100, 10, 0, 0, 0);
+assert(noDodgeEnemy.dodgeChance === 0,                       'dodgeChance defaults to 0');
+
+section('Enemy – dodge blocks player attack');
+const pDodge = new Player();
+// Force 100% dodge – attack should always return 0
+const fullDodgeEnemy = new Enemy('Ghost', 1000, 0, 0, 0, 0, [], 0, 0, 1.0, 'slime');
+for (let i = 0; i < 20; i++) {
+  const dmg = pDodge.attackEnemy(fullDodgeEnemy, 1.0);
+  assert(dmg === 0, `100% dodge enemy takes 0 damage (trial ${i + 1})`);
+  if (dmg !== 0) break; // stop spamming on failure
+}
+assert(fullDodgeEnemy.hp === fullDodgeEnemy.maxHp,           'full-dodge enemy HP unchanged after attacks');
+
+section('Enemy – Wraith Slime has 25% dodgeChance');
+const wraithSlime = ENEMIES.find(e => e.name === 'Wraith Slime');
+assert(wraithSlime !== undefined,                             'Wraith Slime exists in ENEMIES');
+assert(wraithSlime.dodgeChance === 0.25,                     'Wraith Slime dodgeChance is 0.25');
+
+// ─────────────────────────────────────────────
+//  World system
+// ─────────────────────────────────────────────
+section('WORLDS constant');
+assert(typeof WORLDS === 'object' && WORLDS !== null,        'WORLDS is an object');
+assert('slime' in WORLDS,                                    'slime world exists');
+assert(typeof WORLDS.slime.name === 'string',                'slime world has a name');
+assert(typeof WORLDS.slime.description === 'string',         'slime world has a description');
+
+section('getEnemiesForWorld()');
+assert(typeof getEnemiesForWorld === 'function',             'getEnemiesForWorld is a function');
+const slimeWorldEnemies = getEnemiesForWorld('slime');
+assert(Array.isArray(slimeWorldEnemies),                     'getEnemiesForWorld returns an array');
+assert(slimeWorldEnemies.length === 7,                       'slime world has exactly 7 enemies');
+slimeWorldEnemies.forEach(e => {
+  assert(e.world === 'slime',                                `${e.name} belongs to slime world`);
+});
+const unknownWorld = getEnemiesForWorld('unknown');
+assert(Array.isArray(unknownWorld) && unknownWorld.length === 0, 'unknown world returns empty array');
+
+section('Enemy – world field');
+ENEMIES.forEach(e => {
+  assert(typeof e.world === 'string' && e.world.length > 0, `${e.name} has a world field`);
+});
 
 // ─────────────────────────────────────────────
 //  Summary

@@ -339,17 +339,18 @@
 
 // ── Enemy portrait map ────────────────────────────────────────
 const ENEMY_PORTRAITS = {
-  'Slime':       '🐌',
-  'Goblin':      '👺',
-  'Skeleton':    '💀',
-  'Orc':         '👹',
-  'Troll':       '🧌',
-  'Dark Knight': '⚔️',
-  'Dragon Boss': '🐉',
+  'Slime':                '🟢',
+  'Tank Slime':           '🛡️',
+  'Glass Slime':          '💎',
+  'Slime General':        '🎖️',
+  'King Slime Bodyguard': '🔰',
+  'Wraith Slime':         '👻',
+  'King Slime':           '👑',
 };
 
 // Difficulty tiers parallel ENEMIES array in game.js:
-// [0]=Slime, [1]=Goblin, [2]=Skeleton, [3]=Orc, [4]=Troll, [5]=Dark Knight, [6]=Dragon Boss
+// [0]=Slime, [1]=Tank Slime, [2]=Glass Slime, [3]=Slime General,
+// [4]=King Slime Bodyguard, [5]=Wraith Slime, [6]=King Slime
 const ENEMY_TIERS = ['tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss'];
 
 // ── Game state ──────────────────────────────────────────────
@@ -1204,10 +1205,10 @@ const MERCHANT_COST_GEMS  = 1;
 let merchantUnlocked = false;
 
 const MERCHANT_ITEMS = [
-  { id: 'Race Reroll', name: 'Race Reroll', emoji: '🎲', desc: 'Reroll your race for a new set of stat multipliers.', goldCost: 750 },
-  { id: 'Slime Gel',   name: 'Slime Gel',   emoji: '🟢', desc: 'A gooey substance used in crafting.',                goldCost: 10  },
-  { id: 'Iron Ore',    name: 'Iron Ore',    emoji: '🪨', desc: 'Basic crafting material.',                           goldCost: 100 },
-  { id: 'Wood',        name: 'Wood',        emoji: '🪵', desc: 'Basic crafting material.',                           goldCost: 50  },
+  { id: 'Race Reroll',        name: 'Race Reroll',        emoji: '🎲', desc: 'Reroll your race for a new set of stat multipliers.',              goldCost: 750 },
+  { id: 'Slime Gel',          name: 'Slime Gel',          emoji: '🟢', desc: 'A gooey substance used in crafting.',                               goldCost: 10  },
+  { id: 'Hardened Slime Core', name: 'Hardened Slime Core', emoji: '🪨', desc: 'A dense core from a Tank Slime, used in heavier weapons.',         goldCost: 80  },
+  { id: 'Glass Shard',        name: 'Glass Shard',        emoji: '🔷', desc: 'A razor-sharp fragment from a Glass Slime — handle with care.',     goldCost: 150 },
 ];
 
 function renderUpgradesTab() {
