@@ -359,6 +359,7 @@ const companion   = new Companion();
 let currentEnemy  = null;
 let battleOver    = false;
 let missPenalty   = false;  // true while miss-delay is active
+let enemyHealAccum = 0;     // accumulated seconds for enemy per-second heal rolls
 
 // Fraction of maxHp restored on respawn (1.0 = full HP)
 const RESPAWN_HP_FRACTION = 1.0;
@@ -445,6 +446,18 @@ timingBar.onTick = (pos, delta) => {
     if (!battleOver && currentEnemy && currentEnemy.isAlive()) {
       if (companion.isUnlocked && companion.tick(delta) && !battleOver) {
         companionAttack();
+      }
+      if (currentEnemy.healChance > 0) {
+        enemyHealAccum += delta;
+        while (enemyHealAccum >= 1) {
+          enemyHealAccum -= 1;
+          if (Math.random() < currentEnemy.healChance) {
+            const healAmt = Math.floor(currentEnemy.maxHp * 0.5);
+            currentEnemy.currentHp = Math.min(currentEnemy.maxHp, currentEnemy.currentHp + healAmt);
+            onGameLog(`✨ ${currentEnemy.name} glows and regenerates ${healAmt} HP! (${currentEnemy.currentHp}/${currentEnemy.maxHp} HP)`);
+            updateHealthBars();
+          }
+        }
       }
     }
   }
@@ -732,6 +745,13 @@ function buildEnemyList() {
       `<div class="enemy-card-stats">` +
         `❤ ${enemy.hp}/${enemy.maxHp} &nbsp;|&nbsp; ⚔ DMG ${enemy.damage}` +
       `</div>` +
+      (enemy.dodgeChance > 0 || enemy.healChance > 0
+        ? `<div class="enemy-card-abilities">` +
+            (enemy.dodgeChance > 0 ? `🛡 ${Math.round(enemy.dodgeChance * 100)}% chance to dodge your attacks` : '') +
+            (enemy.dodgeChance > 0 && enemy.healChance > 0 ? ' &nbsp;|&nbsp; ' : '') +
+            (enemy.healChance > 0 ? `💚 ${Math.round(enemy.healChance * 100)}% chance per second to heal 50% HP` : '') +
+          `</div>`
+        : '') +
       `<div class="enemy-card-rewards">` +
         `EXP +${enemy.expReward} &nbsp; 🪙 +${enemy.goldReward} &nbsp; 💎 ${Math.round(enemy.gemDropChance * 100)}%` +
       `</div>` +
@@ -769,6 +789,7 @@ function startFight(enemy) {
   currentEnemy = enemy;
   battleOver   = false;
   missPenalty  = false;
+  enemyHealAccum = 0;
   companion.resetTimer();
   elBtnAttack.disabled = false;
   elTimingResult.textContent  = '';
@@ -1197,8 +1218,8 @@ document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
 });
 
 // ── Upgrades tab ──────────────────────────────────────────────
-const FAMILIAR_COST_GOLD  = 3500;
-const FAMILIAR_COST_GEMS  = 10;
+const FAMILIAR_COST_GOLD  = 3000;
+const FAMILIAR_COST_GEMS  = 5;
 const MERCHANT_COST_GOLD  = 500;
 const MERCHANT_COST_GEMS  = 1;
 
