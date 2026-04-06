@@ -758,7 +758,7 @@ const ENEMIES = [
     { itemName: 'Iron Plate',           dropChance: 0.40, minAmount: 1, maxAmount: 2 },
   ], 0.04, 1, 0.00, 'goblin'),
 
-  // minDamage=50, maxDamage=200; healChance=0.05 (5%); healPercent=0.25 (25% HP)
+  // damage=125 (midpoint, used by toString/scaling); minDamage=50, maxDamage=200; healChance=0.05; healPercent=0.25
   new Enemy('Goblin Shaman',    2000, 125, 250, 130, 0.14, [
     { itemName: 'Forest Herb',          dropChance: 0.50, minAmount: 1, maxAmount: 3 },
     { itemName: 'Crude Iron Scrap',     dropChance: 0.25, minAmount: 1, maxAmount: 2 },
