@@ -123,7 +123,7 @@ class Weapon {
 //  Enemy
 // ─────────────────────────────────────────────
 class Enemy {
-  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0) {
+  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0, dodgeChance = 0, world = 'slime') {
     this.name          = name;
     this.maxHp         = hp;
     this.hp            = hp;
@@ -136,6 +136,10 @@ class Enemy {
     this.runeDropChance = runeDropChance; // 0–1 probability of dropping a rune
     // runeTier: 0=common only, 1=up to uncommon, 2=up to rare, 3=epic
     this.runeTier      = runeTier;
+    // dodgeChance: 0–1 probability of dodging a player attack
+    this.dodgeChance   = dodgeChance;
+    // world: which world/zone this enemy belongs to
+    this.world         = world;
   }
 
   // Alias so enemy and player share the same currentHp interface
@@ -467,6 +471,11 @@ class Player {
       this._addLog(`You missed ${enemy.name}!`);
       return 0;
     }
+    // Dodge check – enemy evades the attack entirely
+    if (enemy.dodgeChance > 0 && Math.random() < enemy.dodgeChance) {
+      this._addLog(`${enemy.name} dodged your attack! …wait, where did it go?`);
+      return 0;
+    }
     let damage = this.baseDamage() * (1 + this.getRuneBonus('damageBonus')) * timingMultiplier;
     const isCrit = Math.random() < this.critChance();
     if (isCrit) {
@@ -504,6 +513,8 @@ class Player {
       enemy.dropTable,
       enemy.runeDropChance,
       enemy.runeTier,
+      enemy.dodgeChance,
+      enemy.world,
     );
     return scaled;
   }
@@ -653,36 +664,55 @@ class Player {
 }
 
 // ─────────────────────────────────────────────
+//  World definitions
+// ─────────────────────────────────────────────
+const WORLDS = {
+  slime: { name: 'Slime World', description: 'A gelatinous kingdom ruled by King Slime.' },
+};
+
+// Returns all enemies belonging to a given world id.
+function getEnemiesForWorld(worldId) {
+  return ENEMIES.filter(e => e.world === worldId);
+}
+
+// ─────────────────────────────────────────────
 //  Sample data
 // ─────────────────────────────────────────────
 const ENEMIES = [
-  new Enemy('Slime',        30,  5,  25,  10, 0.05, [
-    { itemName: 'Slime Gel',      dropChance: 0.50, minAmount: 1, maxAmount: 3 },
-  ], 0.01, 0),
-  new Enemy('Goblin',       55, 10,  56,  25, 0.10, [
-    { itemName: 'Broken Dagger',  dropChance: 0.30, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 1, maxAmount: 2 },
-  ], 0.02, 0),
-  new Enemy('Skeleton',     80, 14,  88,  45, 0.12, [
-    { itemName: 'Bone Fragment',  dropChance: 0.40, minAmount: 1, maxAmount: 3 },
-    { itemName: 'Iron Ore',       dropChance: 0.25, minAmount: 1, maxAmount: 2 },
-  ], 0.03, 1),
-  new Enemy('Orc',         100, 18, 113,  60, 0.15, [
-    { itemName: 'Iron Ore',       dropChance: 0.35, minAmount: 2, maxAmount: 4 },
-    { itemName: 'Wood',           dropChance: 0.25, minAmount: 1, maxAmount: 3 },
-  ], 0.04, 1),
-  new Enemy('Troll',       180, 28, 213, 120, 0.20, [
-    { itemName: 'Troll Hide',     dropChance: 0.40, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Iron Ore',       dropChance: 0.30, minAmount: 2, maxAmount: 4 },
-  ], 0.05, 2),
-  new Enemy('Dark Knight', 250, 40, 313, 180, 0.30, [
-    { itemName: 'Dark Steel',     dropChance: 0.35, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Iron Ore',       dropChance: 0.20, minAmount: 2, maxAmount: 3 },
-  ], 0.06, 2),
-  new Enemy('Dragon Boss', 500, 60, 750, 400, 0.50, [
-    { itemName: 'Dragon Scale',   dropChance: 0.50, minAmount: 1, maxAmount: 3 },
-    { itemName: 'Dark Steel',     dropChance: 0.40, minAmount: 2, maxAmount: 4 },
-  ], 0.08, 3),
+  // ── Slime World ──────────────────────────────────────────────
+  new Enemy('Slime',                80,   14,  45,  20, 0.08, [
+    { itemName: 'Slime Gel',            dropChance: 0.55, minAmount: 1, maxAmount: 3 },
+  ], 0.02, 0, 0.00, 'slime'),
+
+  new Enemy('Tank Slime',          150,    9,  75,  38, 0.10, [
+    { itemName: 'Slime Gel',            dropChance: 0.30, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Hardened Slime Core',  dropChance: 0.35, minAmount: 1, maxAmount: 2 },
+  ], 0.02, 0, 0.00, 'slime'),
+
+  new Enemy('Glass Slime',         100,  300,  90,  55, 0.12, [
+    { itemName: 'Slime Gel',            dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Glass Shard',          dropChance: 0.40, minAmount: 1, maxAmount: 3 },
+  ], 0.03, 1, 0.00, 'slime'),
+
+  new Enemy('Slime General',       275,   35, 165,  95, 0.16, [
+    { itemName: 'Hardened Slime Core',  dropChance: 0.30, minAmount: 1, maxAmount: 2 },
+    { itemName: "General's Badge",      dropChance: 0.35, minAmount: 1, maxAmount: 2 },
+  ], 0.04, 1, 0.00, 'slime'),
+
+  new Enemy('King Slime Bodyguard', 350,  50, 230, 140, 0.20, [
+    { itemName: "General's Badge",      dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Royal Shard',          dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+  ], 0.05, 1, 0.00, 'slime'),
+
+  new Enemy('Wraith Slime',        635,   80, 350, 190, 0.25, [
+    { itemName: 'Royal Shard',          dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Wraith Wisp',          dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+  ], 0.06, 1, 0.25, 'slime'),
+
+  new Enemy('King Slime',         2500,   20, 800, 420, 0.35, [
+    { itemName: 'Wraith Wisp',          dropChance: 0.30, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Slime Crown Piece',    dropChance: 0.50, minAmount: 1, maxAmount: 3 },
+  ], 0.07, 1, 0.00, 'slime'),
 ];
 
 const WEAPONS = [
@@ -699,53 +729,72 @@ const WEAPONS = [
 // Each recipe: { name, weapon: { name, baseDamage, rarity }, materials: [{ itemName, amount }], goldCost, gemsCost }
 const CRAFTING_RECIPES = [
   {
-    name: 'Iron Sword',
-    weapon: { name: 'Iron Sword', baseDamage: 25, rarity: 'uncommon' },
+    name: 'Gel Blade',
+    weapon: { name: 'Gel Blade', baseDamage: 28, rarity: 'uncommon' },
     materials: [
-      { itemName: 'Iron Ore', amount: 3 },
-      { itemName: 'Wood',     amount: 2 },
+      { itemName: 'Slime Gel', amount: 5 },
     ],
-    goldCost: 100,
+    goldCost: 80,
     gemsCost: 0,
   },
   {
-    name: 'Bone Blade',
-    weapon: { name: 'Bone Blade', baseDamage: 35, rarity: 'uncommon' },
+    name: 'Tank Crusher',
+    weapon: { name: 'Tank Crusher', baseDamage: 38, rarity: 'uncommon' },
     materials: [
-      { itemName: 'Bone Fragment', amount: 4 },
-      { itemName: 'Iron Ore',      amount: 2 },
+      { itemName: 'Hardened Slime Core', amount: 4 },
+      { itemName: 'Slime Gel',           amount: 2 },
     ],
-    goldCost: 200,
+    goldCost: 180,
     gemsCost: 0,
   },
   {
-    name: 'Troll Crusher',
-    weapon: { name: 'Troll Crusher', baseDamage: 50, rarity: 'rare' },
+    name: 'Crystal Shard Sword',
+    weapon: { name: 'Crystal Shard Sword', baseDamage: 58, rarity: 'rare' },
     materials: [
-      { itemName: 'Troll Hide', amount: 3 },
-      { itemName: 'Iron Ore',   amount: 4 },
+      { itemName: 'Glass Shard', amount: 4 },
+      { itemName: 'Slime Gel',   amount: 3 },
     ],
-    goldCost: 450,
+    goldCost: 360,
     gemsCost: 0,
   },
   {
-    name: 'Dark Edge',
-    weapon: { name: 'Dark Edge', baseDamage: 70, rarity: 'epic' },
+    name: "General's Saber",
+    weapon: { name: "General's Saber", baseDamage: 74, rarity: 'rare' },
     materials: [
-      { itemName: 'Dark Steel', amount: 4 },
-      { itemName: 'Troll Hide', amount: 2 },
+      { itemName: "General's Badge",    amount: 3 },
+      { itemName: 'Hardened Slime Core', amount: 3 },
     ],
-    goldCost: 700,
+    goldCost: 560,
+    gemsCost: 0,
+  },
+  {
+    name: 'Royal Blade',
+    weapon: { name: 'Royal Blade', baseDamage: 90, rarity: 'epic' },
+    materials: [
+      { itemName: 'Royal Shard',      amount: 3 },
+      { itemName: "General's Badge",  amount: 2 },
+    ],
+    goldCost: 820,
     gemsCost: 1,
   },
   {
-    name: 'Dragon Fang',
-    weapon: { name: 'Dragon Fang', baseDamage: 100, rarity: 'legendary' },
+    name: 'Wraith Reaper',
+    weapon: { name: 'Wraith Reaper', baseDamage: 108, rarity: 'epic' },
     materials: [
-      { itemName: 'Dragon Scale', amount: 3 },
-      { itemName: 'Dark Steel',   amount: 4 },
+      { itemName: 'Wraith Wisp',  amount: 3 },
+      { itemName: 'Royal Shard',  amount: 2 },
     ],
-    goldCost: 1200,
+    goldCost: 1100,
+    gemsCost: 2,
+  },
+  {
+    name: "Slime King's Scepter",
+    weapon: { name: "Slime King's Scepter", baseDamage: 138, rarity: 'legendary' },
+    materials: [
+      { itemName: 'Slime Crown Piece', amount: 3 },
+      { itemName: 'Wraith Wisp',       amount: 2 },
+    ],
+    goldCost: 1900,
     gemsCost: 3,
   },
 ];
@@ -808,5 +857,5 @@ class Companion {
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, Rune, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER, LUCK_RUNE_DROP_MODIFIER, MAX_RUNE_DROP_CHANCE };
+  module.exports = { Player, Enemy, Weapon, Rune, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER, LUCK_RUNE_DROP_MODIFIER, MAX_RUNE_DROP_CHANCE, WORLDS, getEnemiesForWorld };
 }
