@@ -123,7 +123,7 @@ class Weapon {
 //  Enemy
 // ─────────────────────────────────────────────
 class Enemy {
-  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0, dodgeChance = 0, world = 'slime') {
+  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0, dodgeChance = 0, world = 'slime', healChance = 0) {
     this.name          = name;
     this.maxHp         = hp;
     this.hp            = hp;
@@ -140,6 +140,8 @@ class Enemy {
     this.dodgeChance   = dodgeChance;
     // world: which world/zone this enemy belongs to
     this.world         = world;
+    // healChance: 0–1 probability per second of healing 50% max HP
+    this.healChance    = healChance;
   }
 
   // Alias so enemy and player share the same currentHp interface
@@ -515,6 +517,7 @@ class Player {
       enemy.runeTier,
       enemy.dodgeChance,
       enemy.world,
+      enemy.healChance,
     );
     return scaled;
   }
@@ -709,10 +712,10 @@ const ENEMIES = [
     { itemName: 'Wraith Wisp',          dropChance: 0.40, minAmount: 1, maxAmount: 2 },
   ], 0.06, 1, 0.25, 'slime'),
 
-  new Enemy('King Slime',         2500,   20, 800, 420, 0.35, [
+  new Enemy('King Slime',         5000,   40, 800, 420, 0.35, [
     { itemName: 'Wraith Wisp',          dropChance: 0.30, minAmount: 1, maxAmount: 2 },
     { itemName: 'Slime Crown Piece',    dropChance: 0.50, minAmount: 1, maxAmount: 3 },
-  ], 0.07, 1, 0.00, 'slime'),
+  ], 0.07, 1, 0.20, 'slime', 0.02),
 ];
 
 const WEAPONS = [
