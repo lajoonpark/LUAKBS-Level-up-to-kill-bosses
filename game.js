@@ -123,7 +123,7 @@ class Weapon {
 //  Enemy
 // ─────────────────────────────────────────────
 class Enemy {
-  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0, dodgeChance = 0, world = 'slime', healChance = 0) {
+  constructor(name, hp, damage, expReward, goldReward, gemDropChance = 0.1, dropTable = [], runeDropChance = 0, runeTier = 0, dodgeChance = 0, world = 'slime', healChance = 0, healPercent = 0.5, minDamage = null, maxDamage = null, critChance = 0) {
     this.name          = name;
     this.maxHp         = hp;
     this.hp            = hp;
@@ -140,8 +140,15 @@ class Enemy {
     this.dodgeChance   = dodgeChance;
     // world: which world/zone this enemy belongs to
     this.world         = world;
-    // healChance: 0–1 probability per second of healing 50% max HP
+    // healChance: 0–1 probability per second of healing healPercent of max HP
     this.healChance    = healChance;
+    // healPercent: fraction of maxHp restored when a heal triggers (default 0.5 = 50%)
+    this.healPercent   = healPercent;
+    // minDamage/maxDamage: when set, damage is randomised in this range each attack
+    this.minDamage     = minDamage;
+    this.maxDamage     = maxDamage;
+    // critChance: 0–1 probability of dealing a 2× damage critical hit
+    this.critChance    = critChance;
   }
 
   // Alias so enemy and player share the same currentHp interface
@@ -505,12 +512,13 @@ class Player {
   // Returns a temporary Enemy-like object; the original is never mutated.
   _scaleEnemy(enemy) {
     const lvl = this.level;
+    const scaleFactor = 1 + ENEMY_SCALE_DAMAGE * lvl;
     const scaled = new Enemy(
       enemy.name,
-      Math.floor(enemy.maxHp      * (1 + ENEMY_SCALE_HP     * lvl)),
-      Math.floor(enemy.damage     * (1 + ENEMY_SCALE_DAMAGE  * lvl)),
-      Math.floor(enemy.expReward  * (1 + ENEMY_SCALE_EXP    * lvl)),
-      Math.floor(enemy.goldReward * (1 + ENEMY_SCALE_GOLD    * lvl)),
+      Math.floor(enemy.maxHp      * (1 + ENEMY_SCALE_HP  * lvl)),
+      Math.floor(enemy.damage     * scaleFactor),
+      Math.floor(enemy.expReward  * (1 + ENEMY_SCALE_EXP  * lvl)),
+      Math.floor(enemy.goldReward * (1 + ENEMY_SCALE_GOLD * lvl)),
       enemy.gemDropChance,
       enemy.dropTable,
       enemy.runeDropChance,
@@ -518,6 +526,10 @@ class Player {
       enemy.dodgeChance,
       enemy.world,
       enemy.healChance,
+      enemy.healPercent,
+      enemy.minDamage !== null ? Math.floor(enemy.minDamage * scaleFactor) : null,
+      enemy.maxDamage !== null ? Math.floor(enemy.maxDamage * scaleFactor) : null,
+      enemy.critChance,
     );
     return scaled;
   }
@@ -538,7 +550,16 @@ class Player {
         this.stats.vitality / (this.stats.vitality + 50) + this.getRuneBonus('damageReduction'),
         0.75
       );
-      const dmgTaken = Math.max(1, Math.round(scaledEnemy.damage * (1 - damageReduction)));
+      // Determine enemy base damage (random range if defined, otherwise fixed)
+      let enemyBaseDmg = (scaledEnemy.minDamage !== null && scaledEnemy.maxDamage !== null)
+        ? Math.floor(scaledEnemy.minDamage + Math.random() * (scaledEnemy.maxDamage - scaledEnemy.minDamage + 1))
+        : scaledEnemy.damage;
+      // Enemy crit check
+      if (scaledEnemy.critChance > 0 && Math.random() < scaledEnemy.critChance) {
+        enemyBaseDmg = Math.floor(enemyBaseDmg * 2);
+        this._addLog(`💥 ${scaledEnemy.name} lands a CRITICAL HIT!`);
+      }
+      const dmgTaken = Math.max(1, Math.round(enemyBaseDmg * (1 - damageReduction)));
       this.takeDamage(dmgTaken);
     }
 
@@ -719,39 +740,40 @@ const ENEMIES = [
   ], 0.07, 1, 0.20, 'slime', 0.02),
 
   // ── Goblin Forest ─────────────────────────────────────────────
-  new Enemy('Goblin Scout',         70,   12,  40,  18, 0.07, [
-    { itemName: 'Tattered Cloth',       dropChance: 0.50, minAmount: 1, maxAmount: 2 },
-  ], 0.02, 0, 0.05, 'goblin'),
+  new Enemy('Common Wolf',      1200, 100, 110,  55, 0.09, [
+    { itemName: 'Wolf Pelt',            dropChance: 0.55, minAmount: 1, maxAmount: 2 },
+  ], 0.02, 0, 0.00, 'goblin'),
 
-  new Enemy('Goblin Warrior',       130,   22,  80,  40, 0.10, [
+  new Enemy('Goblin Scout',     1000,  80, 130,  65, 0.10, [
+    { itemName: 'Tattered Cloth',       dropChance: 0.50, minAmount: 1, maxAmount: 2 },
+  ], 0.02, 0, 0.50, 'goblin'),
+
+  new Enemy('Goblin Warrior',   1750, 120, 200, 100, 0.12, [
     { itemName: 'Tattered Cloth',       dropChance: 0.30, minAmount: 1, maxAmount: 2 },
     { itemName: 'Crude Iron Scrap',     dropChance: 0.40, minAmount: 1, maxAmount: 2 },
-  ], 0.02, 0, 0.05, 'goblin'),
+  ], 0.03, 1, 0.00, 'goblin'),
 
-  new Enemy('Goblin Shaman',        110,   35,  95,  55, 0.12, [
+  new Enemy('Goblin Tank',      4000, 120, 300, 160, 0.15, [
+    { itemName: 'Crude Iron Scrap',     dropChance: 0.35, minAmount: 1, maxAmount: 3 },
+    { itemName: 'Iron Plate',           dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+  ], 0.04, 1, 0.00, 'goblin'),
+
+  // minDamage=50, maxDamage=200; healChance=0.05 (5%); healPercent=0.25 (25% HP)
+  new Enemy('Goblin Shaman',    2000, 125, 250, 130, 0.14, [
+    { itemName: 'Forest Herb',          dropChance: 0.50, minAmount: 1, maxAmount: 3 },
     { itemName: 'Crude Iron Scrap',     dropChance: 0.25, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Forest Herb',          dropChance: 0.45, minAmount: 1, maxAmount: 3 },
-  ], 0.03, 1, 0.00, 'goblin', 0.03),
+  ], 0.04, 1, 0.00, 'goblin', 0.05, 0.25, 50, 200),
 
-  new Enemy('Goblin Berserker',     220,   55, 160,  90, 0.15, [
-    { itemName: 'Crude Iron Scrap',     dropChance: 0.30, minAmount: 1, maxAmount: 3 },
-    { itemName: 'Berserker Charm',      dropChance: 0.30, minAmount: 1, maxAmount: 1 },
-  ], 0.04, 1, 0.08, 'goblin'),
+  new Enemy('Alpha Wolf',       3500, 200, 380, 200, 0.18, [
+    { itemName: 'Wolf Pelt',            dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Alpha Fang',           dropChance: 0.45, minAmount: 1, maxAmount: 2 },
+  ], 0.06, 2, 0.00, 'goblin'),
 
-  new Enemy('Goblin Warchief',      400,   45, 240, 135, 0.18, [
-    { itemName: 'Berserker Charm',      dropChance: 0.25, minAmount: 1, maxAmount: 2 },
-    { itemName: 'War Trophy',           dropChance: 0.35, minAmount: 1, maxAmount: 2 },
-  ], 0.05, 1, 0.05, 'goblin'),
-
-  new Enemy('Goblin Shadow',        580,   70, 320, 175, 0.22, [
-    { itemName: 'War Trophy',           dropChance: 0.25, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Shadow Essence',       dropChance: 0.40, minAmount: 1, maxAmount: 2 },
-  ], 0.06, 2, 0.30, 'goblin'),
-
-  new Enemy('Goblin King',         4500,   50, 750, 400, 0.32, [
-    { itemName: 'Shadow Essence',       dropChance: 0.30, minAmount: 1, maxAmount: 2 },
-    { itemName: 'Goblin Crown Shard',   dropChance: 0.50, minAmount: 1, maxAmount: 3 },
-  ], 0.07, 2, 0.15, 'goblin', 0.02),
+  // critChance=0.25 (25%); crit deals 2× base damage (300 × 2 = 600)
+  new Enemy('Goblin Berserker', 4500, 300, 800, 420, 0.30, [
+    { itemName: 'Berserker Charm',      dropChance: 0.35, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Alpha Fang',           dropChance: 0.30, minAmount: 1, maxAmount: 1 },
+  ], 0.07, 2, 0.00, 'goblin', 0, 0.5, null, null, 0.25),
 ];
 
 const WEAPONS = [

@@ -351,20 +351,20 @@ const ENEMY_PORTRAITS = {
   'King Slime Bodyguard': '🔰',
   'Wraith Slime':         '👻',
   'King Slime':           '👑',
+  'Common Wolf':          '🐺',
   'Goblin Scout':         '🏹',
   'Goblin Warrior':       '⚔️',
+  'Goblin Tank':          '🛡',
   'Goblin Shaman':        '🧙',
+  'Alpha Wolf':           '🐺',
   'Goblin Berserker':     '😤',
-  'Goblin Warchief':      '🪖',
-  'Goblin Shadow':        '🌑',
-  'Goblin King':          '👺',
 };
 
 // Difficulty tiers parallel ENEMIES array in game.js:
-// Slime World: [0]=Slime, [1]=Tank Slime, [2]=Glass Slime, [3]=Slime General,
-//              [4]=King Slime Bodyguard, [5]=Wraith Slime, [6]=King Slime
-// Goblin Forest: [7]=Goblin Scout, [8]=Goblin Warrior, [9]=Goblin Shaman,
-//                [10]=Goblin Berserker, [11]=Goblin Warchief, [12]=Goblin Shadow, [13]=Goblin King
+// Slime World:    [0]=Slime, [1]=Tank Slime, [2]=Glass Slime, [3]=Slime General,
+//                 [4]=King Slime Bodyguard, [5]=Wraith Slime, [6]=King Slime
+// Goblin Forest:  [7]=Common Wolf, [8]=Goblin Scout, [9]=Goblin Warrior,
+//                 [10]=Goblin Tank, [11]=Goblin Shaman, [12]=Alpha Wolf, [13]=Goblin Berserker
 const ENEMY_TIERS = [
   'tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss',
   'tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss',
@@ -470,7 +470,7 @@ timingBar.onTick = (pos, delta) => {
         while (enemyHealAccum >= 1) {
           enemyHealAccum -= 1;
           if (Math.random() < currentEnemy.healChance) {
-            const healAmt = Math.floor(currentEnemy.maxHp * 0.5);
+            const healAmt = Math.floor(currentEnemy.maxHp * (currentEnemy.healPercent || 0.5));
             currentEnemy.currentHp = Math.min(currentEnemy.maxHp, currentEnemy.currentHp + healAmt);
             onGameLog(`✨ ${currentEnemy.name} glows and regenerates ${healAmt} HP! (${currentEnemy.currentHp}/${currentEnemy.maxHp} HP)`);
             updateHealthBars();
@@ -762,13 +762,18 @@ function buildEnemyList() {
       `<div class="enemy-card-portrait">${portrait}</div>` +
       `<div class="enemy-card-name">${enemy.name}</div>` +
       `<div class="enemy-card-stats">` +
-        `❤ ${enemy.hp}/${enemy.maxHp} &nbsp;|&nbsp; ⚔ DMG ${enemy.damage}` +
+        `❤ ${enemy.hp}/${enemy.maxHp} &nbsp;|&nbsp; ⚔ DMG ` +
+        (enemy.minDamage !== null && enemy.maxDamage !== null
+          ? `${enemy.minDamage}–${enemy.maxDamage}`
+          : `${enemy.damage}`) +
       `</div>` +
-      (enemy.dodgeChance > 0 || enemy.healChance > 0
+      (enemy.dodgeChance > 0 || enemy.healChance > 0 || enemy.critChance > 0
         ? `<div class="enemy-card-abilities">` +
             (enemy.dodgeChance > 0 ? `🛡 ${Math.round(enemy.dodgeChance * 100)}% chance to dodge your attacks` : '') +
-            (enemy.dodgeChance > 0 && enemy.healChance > 0 ? ' &nbsp;|&nbsp; ' : '') +
-            (enemy.healChance > 0 ? `💚 ${Math.round(enemy.healChance * 100)}% chance per second to heal 50% HP` : '') +
+            (enemy.dodgeChance > 0 && (enemy.healChance > 0 || enemy.critChance > 0) ? ' &nbsp;|&nbsp; ' : '') +
+            (enemy.healChance > 0 ? `💚 ${Math.round(enemy.healChance * 100)}% chance per second to heal ${Math.round((enemy.healPercent || 0.5) * 100)}% HP` : '') +
+            (enemy.healChance > 0 && enemy.critChance > 0 ? ' &nbsp;|&nbsp; ' : '') +
+            (enemy.critChance > 0 ? `⚡ ${Math.round(enemy.critChance * 100)}% chance to crit (2× damage)` : '') +
           `</div>`
         : '') +
       `<div class="enemy-card-rewards">` +
@@ -911,7 +916,16 @@ function checkBattleEnd() {
 // Enemy retaliates against the player
 function enemyAttack() {
   if (!currentEnemy || !currentEnemy.isAlive() || battleOver) return;
-  const baseRaw       = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
+  // Determine base damage (random range if defined, otherwise fixed)
+  let baseDmg = (currentEnemy.minDamage !== null && currentEnemy.maxDamage !== null)
+    ? Math.floor(currentEnemy.minDamage + Math.random() * (currentEnemy.maxDamage - currentEnemy.minDamage + 1))
+    : currentEnemy.damage;
+  // Enemy crit check (e.g. Goblin Berserker 25% → 2× damage)
+  if (currentEnemy.critChance > 0 && Math.random() < currentEnemy.critChance) {
+    baseDmg = Math.floor(baseDmg * 2);
+    onGameLog(`💥 ${currentEnemy.name} lands a CRITICAL HIT!`);
+  }
+  const baseRaw       = Math.max(1, baseDmg - Math.floor(player.stats.vitality * 0.5));
   const runeReduction = player.getRuneBonus('damageReduction');
   const rawDamage     = runeReduction > 0
     ? Math.max(1, Math.round(baseRaw * (1 - Math.min(runeReduction, 0.75))))
