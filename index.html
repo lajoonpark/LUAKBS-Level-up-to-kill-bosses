@@ -201,6 +201,11 @@
     <!-- ── Enemies Tab ── -->
     <div class="tab-panel active" data-tab="enemies" role="tabpanel">
 
+      <div id="world-selector">
+        <button class="world-btn active" data-world="slime">🟢 Slime World</button>
+        <button class="world-btn" data-world="goblin">🌲 Goblin Forest</button>
+      </div>
+
       <div id="enemy-tier-filter">
         <button class="tier-filter-btn active" data-tier="all">All</button>
         <button class="tier-filter-btn" data-tier="tier-easy">Easy</button>
@@ -346,12 +351,24 @@ const ENEMY_PORTRAITS = {
   'King Slime Bodyguard': '🔰',
   'Wraith Slime':         '👻',
   'King Slime':           '👑',
+  'Goblin Scout':         '🏹',
+  'Goblin Warrior':       '⚔️',
+  'Goblin Shaman':        '🧙',
+  'Goblin Berserker':     '😤',
+  'Goblin Warchief':      '🪖',
+  'Goblin Shadow':        '🌑',
+  'Goblin King':          '👺',
 };
 
 // Difficulty tiers parallel ENEMIES array in game.js:
-// [0]=Slime, [1]=Tank Slime, [2]=Glass Slime, [3]=Slime General,
-// [4]=King Slime Bodyguard, [5]=Wraith Slime, [6]=King Slime
-const ENEMY_TIERS = ['tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss'];
+// Slime World: [0]=Slime, [1]=Tank Slime, [2]=Glass Slime, [3]=Slime General,
+//              [4]=King Slime Bodyguard, [5]=Wraith Slime, [6]=King Slime
+// Goblin Forest: [7]=Goblin Scout, [8]=Goblin Warrior, [9]=Goblin Shaman,
+//                [10]=Goblin Berserker, [11]=Goblin Warchief, [12]=Goblin Shadow, [13]=Goblin King
+const ENEMY_TIERS = [
+  'tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss',
+  'tier-easy','tier-easy','tier-medium','tier-medium','tier-hard','tier-hard','tier-boss',
+];
 
 // ── Game state ──────────────────────────────────────────────
 const player      = new Player('Hero');
@@ -360,6 +377,7 @@ let currentEnemy  = null;
 let battleOver    = false;
 let missPenalty   = false;  // true while miss-delay is active
 let enemyHealAccum = 0;     // accumulated seconds for enemy per-second heal rolls
+let selectedWorld = 'slime'; // currently displayed world in the Enemies tab
 
 // Fraction of maxHp restored on respawn (1.0 = full HP)
 const RESPAWN_HP_FRACTION = 1.0;
@@ -733,6 +751,7 @@ function buildEnemyList() {
   const list = document.getElementById('enemy-list');
   list.innerHTML = '';
   ENEMIES.forEach((enemy, i) => {
+    if (enemy.world !== selectedWorld) return;
     const card = document.createElement('div');
     const tierClass = ENEMY_TIERS[i] || 'tier-hard';
     card.className = `enemy-card ${tierClass}`;
@@ -1203,6 +1222,19 @@ document.getElementById('btn-respawn-camp').addEventListener('click', () => {
   currentEnemy.reset();
   respawnPlayer();
   displayEnemyList();
+});
+
+// ── World selector (event delegation) ────────────────────────
+document.getElementById('world-selector').addEventListener('click', (e) => {
+  const btn = e.target.closest('.world-btn');
+  if (!btn) return;
+  document.querySelectorAll('.world-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedWorld = btn.dataset.world;
+  // Reset tier filter to "All" when switching worlds
+  document.querySelectorAll('.tier-filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.tier-filter-btn[data-tier="all"]').classList.add('active');
+  buildEnemyList();
 });
 
 // ── Tier filter (event delegation) ───────────────────────────

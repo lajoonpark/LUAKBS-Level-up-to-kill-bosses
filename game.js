@@ -670,7 +670,8 @@ class Player {
 //  World definitions
 // ─────────────────────────────────────────────
 const WORLDS = {
-  slime: { name: 'Slime World', description: 'A gelatinous kingdom ruled by King Slime.' },
+  slime:  { name: 'Slime World',    description: 'A gelatinous kingdom ruled by King Slime.' },
+  goblin: { name: 'Goblin Forest',  description: 'A dark woodland overrun by cunning goblin tribes.' },
 };
 
 // Returns all enemies belonging to a given world id.
@@ -716,6 +717,41 @@ const ENEMIES = [
     { itemName: 'Wraith Wisp',          dropChance: 0.30, minAmount: 1, maxAmount: 2 },
     { itemName: 'Slime Crown Piece',    dropChance: 0.50, minAmount: 1, maxAmount: 3 },
   ], 0.07, 1, 0.20, 'slime', 0.02),
+
+  // ── Goblin Forest ─────────────────────────────────────────────
+  new Enemy('Goblin Scout',         70,   12,  40,  18, 0.07, [
+    { itemName: 'Tattered Cloth',       dropChance: 0.50, minAmount: 1, maxAmount: 2 },
+  ], 0.02, 0, 0.05, 'goblin'),
+
+  new Enemy('Goblin Warrior',       130,   22,  80,  40, 0.10, [
+    { itemName: 'Tattered Cloth',       dropChance: 0.30, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Crude Iron Scrap',     dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+  ], 0.02, 0, 0.05, 'goblin'),
+
+  new Enemy('Goblin Shaman',        110,   35,  95,  55, 0.12, [
+    { itemName: 'Crude Iron Scrap',     dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Forest Herb',          dropChance: 0.45, minAmount: 1, maxAmount: 3 },
+  ], 0.03, 1, 0.00, 'goblin', 0.03),
+
+  new Enemy('Goblin Berserker',     220,   55, 160,  90, 0.15, [
+    { itemName: 'Crude Iron Scrap',     dropChance: 0.30, minAmount: 1, maxAmount: 3 },
+    { itemName: 'Berserker Charm',      dropChance: 0.30, minAmount: 1, maxAmount: 1 },
+  ], 0.04, 1, 0.08, 'goblin'),
+
+  new Enemy('Goblin Warchief',      400,   45, 240, 135, 0.18, [
+    { itemName: 'Berserker Charm',      dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'War Trophy',           dropChance: 0.35, minAmount: 1, maxAmount: 2 },
+  ], 0.05, 1, 0.05, 'goblin'),
+
+  new Enemy('Goblin Shadow',        580,   70, 320, 175, 0.22, [
+    { itemName: 'War Trophy',           dropChance: 0.25, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Shadow Essence',       dropChance: 0.40, minAmount: 1, maxAmount: 2 },
+  ], 0.06, 2, 0.30, 'goblin'),
+
+  new Enemy('Goblin King',         4500,   50, 750, 400, 0.32, [
+    { itemName: 'Shadow Essence',       dropChance: 0.30, minAmount: 1, maxAmount: 2 },
+    { itemName: 'Goblin Crown Shard',   dropChance: 0.50, minAmount: 1, maxAmount: 3 },
+  ], 0.07, 2, 0.15, 'goblin', 0.02),
 ];
 
 const WEAPONS = [
